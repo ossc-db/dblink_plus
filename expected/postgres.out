@@ -1,0 +1,290 @@
+CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;
+CREATE SERVER server_postgres FOREIGN DATA WRAPPER postgres OPTIONS (dbname 'contrib_regression');
+CREATE USER MAPPING FOR CURRENT_USER SERVER server_postgres OPTIONS (user 'postgres');
+CREATE TABLE dblink_tbl (id integer, value text);
+INSERT INTO dblink_tbl VALUES(1, 'X');
+INSERT INTO dblink_tbl VALUES(2, 'BB');
+INSERT INTO dblink_tbl VALUES(3, 'CCC');
+INSERT INTO dblink_tbl VALUES(4, 'DDDD');
+CREATE TABLE dblink_tmp (LIKE dblink_tbl);
+CREATE FUNCTION dblink.cursor_test(cursor integer, howmany integer)
+RETURNS SETOF dblink_tmp AS
+$$
+TRUNCATE dblink_tmp;
+INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+SELECT * FROM dblink_tmp;
+$$
+LANGUAGE sql;
+-- dblink.connect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+SELECT dblink.connect('conn_postgres', 'server_postgres');
+ connect 
+---------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |     srvname     | status | keep 
+---------------+-----------------+--------+------
+ conn_postgres | server_postgres | idle   | t
+(1 row)
+
+-- dblink.exec() with an existing connection
+SELECT * FROM dblink_tbl ORDER BY id;
+ id | value 
+----+-------
+  1 | X
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_postgres', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |     srvname     | status | keep 
+---------------+-----------------+--------+------
+ conn_postgres | server_postgres | used   | t
+(1 row)
+
+ROLLBACK;
+SELECT * FROM dblink_tbl ORDER BY id;
+ id | value 
+----+-------
+  1 | X
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_postgres', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |     srvname     | status | keep 
+---------------+-----------------+--------+------
+ conn_postgres | server_postgres | used   | t
+(1 row)
+
+COMMIT;
+SELECT * FROM dblink_tbl ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- dblink.query() with an existing connection
+BEGIN;
+SELECT * FROM dblink.query('conn_postgres', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |     srvname     | status | keep 
+---------------+-----------------+--------+------
+ conn_postgres | server_postgres | used   | t
+(1 row)
+
+COMMIT;
+-- dblink.open() with an existing connection
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+-- dblink.disconnect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |     srvname     | status | keep 
+---------------+-----------------+--------+------
+ conn_postgres | server_postgres | idle   | t
+(1 row)
+
+SELECT dblink.disconnect('conn_postgres');
+ disconnect 
+------------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.query() with an anonymous connection
+BEGIN;
+SELECT * FROM dblink.query('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+      name       |     srvname     | status | keep 
+-----------------+-----------------+--------+------
+ server_postgres | server_postgres | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.exec() with an anonymous connection
+BEGIN;
+SELECT dblink.exec('server_postgres', 'UPDATE dblink_tbl SET value = value WHERE id < 3');
+ exec 
+------
+    2
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+      name       |     srvname     | status | keep 
+-----------------+-----------------+--------+------
+ server_postgres | server_postgres | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.open() with an anonymous connection
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.query() with max_value_len option
+SELECT * FROM dblink.query('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id', 0, 1) AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- dblink.open() with max_value_len option
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 1), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- connection without automatic transaction management
+SELECT dblink.connect('conn_postgres', 'server_postgres', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_postgres', 'VACUUM dblink_tbl');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_postgres');
+ disconnect 
+------------
+ t
+(1 row)
+
+create function dblink.f_test(num integer)
+returns integer as
+$$
+  select $1 + 1000;
+$$
+language 'sql';
+-- dblink.call() with an anonymous connection
+SELECT * FROM dblink.call('server_postgres', 'dblink.f_test(1)') AS t(a integer);
+  a   
+------
+ 1001
+(1 row)
+
+--  dblink.call() with max_value_len option
+SELECT * FROM dblink.call('server_postgres', 'dblink.f_test(1)', 0, 1) AS t(a integer);
+  a   
+------
+ 1001
+(1 row)
+
