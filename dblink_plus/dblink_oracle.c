@@ -1,7 +1,7 @@
 /*
  * dblink_oracle.c
  *
- * Copyright (c) 2009, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #ifdef ENABLE_ORACLE
 
