@@ -1,3 +1,4 @@
 dblink*.o
 dblink_plus.sql
 dblink_plus*.so
+tags
