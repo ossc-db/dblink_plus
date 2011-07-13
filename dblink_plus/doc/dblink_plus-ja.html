@@ -1,0 +1,499 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>dblink_plus</title>
+<link rel="home" title="dblink_plus" href="index.html">
+<link rel="stylesheet" TYPE="text/css"href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+<h1 id="dblink_plus">dblink_plus</h1>
+
+<div class="index">
+<ol>
+<li><a href="#name">名前</a></li>
+<li><a href="#synopsis">概要</a></li>
+<li><a href="#description">説明</a></li>
+<li><a href="#examples">使用例</a></li>
+<li><a href="#functions">関数</a></li>
+<li><a href="#restrictions">使用上の注意と制約</a></li>
+<li><a href="#details">詳細</a></li>
+<li><a href="#install">インストール方法</a></li>
+<li><a href="#requirement">動作環境</a></li>
+<li><a href="#seealso">関連項目</a></li>
+</ol>
+</div>
+
+<h2 id="name">名前</h2>
+<p>dblink_plus -- 外部データベース・サーバに接続し、SQLを実行します。</p>
+
+<h2 id="synopsis">概要</h2>
+<p>
+dblink.connect(server, use_xa DEFAULT true) : boolean<br>
+dblink.connect(name, server, use_xa DEFAULT true) : boolean<br>
+dblink.disconnect(name) : boolean<br>
+dblink.query(name, sql, fetchsize DEFAULT 0, max_value_len DEFAULT -1) : SETOF record<br>
+dblink.exec(name, sql) : bigint<br>
+dblink.open(name, sql, fetchsize DEFAULT 100, max_value_len DEFAULT -1) : dblink.cursor<br>
+dblink.fetch(dblink.cursor, howmany DEFAULT 1) : SETOF record<br>
+dblink.close(dblink.cursor) : boolean<br>
+dblink.call(name, sql, fetchsize DEFAULT 0, max_value_len DEFAULT -1) : SETOF record<br>
+dblink.connections() : SETOF record<br>
+</p>
+
+
+<h2 id="description">説明</h2>
+<p>
+データベースセッション内から他のデータベースへ接続するためのモジュールです。PostgreSQL 以外のデータベース・サーバへの接続をサポートしています。dblink_plus を使うことにより商用データベースからのデータ移行が外部ファイルを介さずに行えるほか、異種RDBMS間のオンラインでのテーブル結合等が実現可能となります。
+</p>
+<p>
+dblink_plus は contrib/dblink と異なり、リモートのトランザクションは二相コミットを使用します。
+ローカルのトランザクションがコミット / ロールバックした場合、リモートのトランザクションも同様にコミット / ロールバックします。
+特に更新処理にて、一貫性のあるデータベース操作を容易に実現できます。
+</p>
+<p>
+外部データベース・コネクタにはプラグイン方式を採用しており、PostgreSQL, Oracle, MySQL, sqlite3 に接続できます。
+</p>
+
+
+<h3>自動トランザクション管理について</h3>
+<p>
+dblink_plus は自動トランザクション管理をサポートしています。これによりユーザーはローカルのトランザクションだけを意識すればよく、リモート側のトランザクションについて意識する必要がなくなります。
+</p>
+<pre>
+=# BEGIN;
+=# INSERT INTO postgres_table values (...);  -- ローカルテーブルの挿入
+=# SELECT dblink.exec('oracle_conn', 'insert into oracle_table ...'); -- リモート（Oracle）への挿入
+=# COMMIT;  -- ローカルのコミットですが、リモートのOracleも自動的にコミットされます
+</pre>
+<p>
+自動トランザクションの有効／無効は、外部サーバーへの接続時に true/false で指定します。詳細は dblink.connect() を参照ください。
+</p>
+
+<h3>コネクタ・プラグインについて</h3>
+<p>
+dblink_plus は外部データベースとの接続コネクタに、プラグイン方式を採用しています。
+現在サポートされているコネクタは PostgreSQL, Oracle です。これらのコネクタは、dblink_plus モジュールのビルド時に指定可能です。
+</p>
+
+<h4>dblink.postgres - PostgreSQLコネクタ</h4>
+<p>
+PostgreSQL用のコネクタです。ビルドおよび実行にはlibpqライブラリが必要です。
+</p>
+
+<h4>dblink.oracle - Oracleコネクタ</h4>
+<p>
+Oracle用のコネクタです。ビルドおよび実行にはOracleクライアントおよびOCIライブラリがインストールされている必要があります。またOracle用コネクタはOracleクライアントとして実行されるため、PostgreSQLを起動するユーザーでOracle用環境変数の設定が必要となります。
+</p>
+<ul>
+<li>ORACLE_HOME - （必須）</li>
+<li>LD_LIBRARY_PATH - （必須）</li>
+<li>ORACLE_SID - （ローカル接続の場合のみ必要）</li>
+<li>NLS_LANG - （オプション）</li>
+<li>NLS_DATE_FORMAT - （オプション）</li>
+<li>NLS_TIMESTAMP_FORMAT - （オプション）</li>
+<li>NLS_TIMESTAMP_TZ_FORMAT - （オプション）</li>
+<li>NLS_TIME_FORMAT - （オプション）</li>
+<li>NLS_TIME_TZ_FORMAT - （オプション）</li>
+</ul>
+<p>
+クライアントキャラクタセットはPostgreSQLデータベースセッションのエンコーディングがOracleに対しても適用されます。取得されたPostgreSQLのキャラクタセットがOracleコネクタで認識できない場合、NLS_LANGの設定に従います。NLS_LANGの設定がない場合はOracleのデフォルトとなります。
+</p>
+<p>日付/時刻型の変換は、環境変数NLS_xxxx_FORMATの指定に従います。</p>
+
+
+<h4>dblink.mysql - MYSQLコネクタ</h4>
+<p>
+MYSQL用のコネクタです。ビルドおよび実行にはMYSQLクライアントパッケージがインストールされている必要があります。
+</p>
+
+<h4>dblink.sqlite3 - sqlite3コネクタ</h4>
+<p>
+sqlite3用のコネクタです。ビルドおよび実行にはsqlite3ライブラリが必要です。
+</p>
+
+<h2 id="examples">使用例</h2>
+<p>dblink_plus を使用する前に、外部データラッパ、外部サーバ、ユーザマッピングを作成する必要があります。
+CREATE FOREIGN DATA WRAPPER にて、VALIDATOR に dblink_plus が提供するコネクタを指定してください。
+</p>
+
+<pre>=# CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;
+=# CREATE SERVER my_server FOREIGN DATA WRAPPER postgres OPTIONS (dbname 'mydb');
+=# CREATE USER MAPPING FOR local_user SERVER my_server OPTIONS (user 'remote_user');</pre>
+
+<h3>OracleコネクタでのOPTIONSの指定</h3>
+<p>CREATE SERVERでは dbname と max_value_len を、CREATE USER MAPPINGでは user と password を指定します。</p>
+<dl>
+<dt>dbname</dt>
+<dd>TNS接続文字列です。</dd>
+<dt>max_value_len</dt>
+<dd>取り扱う列データの最大長（文字列に変換後のバイト長）を指定します。<br>
+この外部サーバ定義を利用して検索される行データの内、最大長となる列データの長さ（文字列に変換後のバイト長）が事前に分かっている場合は、その値を設定することにより検索処理が高速になります（ただし、指定した値より列のデータ長が大きくなる場合はエラーとなります）。このオプションを省略した場合は、内部的に列バッファを自動調整しながら検索処理が行なわれますので、低速になることがあります。</dd>
+<dt>user</dt>
+<dd>Oracleデータベースユーザ名です。</dd>
+<dt>password</dt>
+<dd>Oracleデータベースユーザのパスワードです。</dd>
+</dl>
+<pre>=# CREATE FOREIGN DATA WRAPPER oracle VALIDATOR dblink.oracle;
+=# CREATE SERVER server_oracle FOREIGN DATA WRAPPER oracle OPTIONS (dbname 'DBT', max_value_len '200');
+=# CREATE USER MAPPING FOR local_user SERVER server_oracle OPTIONS (user 'scott', password 'tiger');</pre>
+
+<h3>最も簡単なSQLの実行</h3>
+<p>サーバ名を指定して、dblink.exec()を用い更新系SQLを実行します。実行結果に影響行数が返ります。</p>
+<pre>
+=# SELECT dblink.exec('my_server','insert into tbl values(500, ''remote'')');
+ exec
+------
+    1
+(1 row)
+</pre>
+
+<p>サーバ名を指定して、dblink.query()を用い参照系SQLを実行します。実行結果に検索された全ての行が返ります。</p>
+<pre>
+=# SELECT * FROM dblink.query('my_server','select * from tbl') as t(c1 integer, c2 text);
+ c1  |   c2
+-----+--------
+ 100 | host
+ 500 | remote
+(2 rows)
+</pre>
+
+<h3>接続を指定した実行</h3>
+<p>接続をユーザが管理する場合には、dblink.connect(), dblink.disconnect() を使います。</p>
+<pre>=# SELECT dblink.connect('my_conn', 'my_server');
+=# SELECT dblink.exec('my_conn', 'UPDATE tbl SET col = 999 WHERE id = 1');
+=# SELECT dblink.disconnect('my_conn');</pre>
+
+<p>明示的に接続せずにサーバ名を指定した場合には、トランザクション終了時に自動的に切断されます。</p>
+<pre>=# BEGIN;
+=# SELECT dblink.exec('my_server', 'UPDATE tbl SET col = 999 WHERE id = 1');
+=# COMMIT; -- 切断される</pre>
+
+<h3>open, fetch, closeの実行</h3>
+<p>カーソルをオープンし、このカーソルを使いテーブルを検索します。カーソルはトランザクション内で有効です。</p>
+<pre>
+=# BEGIN;
+=# select dblink.open('my_server', 'select * from tbl');
+ open
+------
+    1
+(1 row)
+
+=# select * from dblink.fetch(1) as t(c1 integer, c2 text);
+ c1  |   c2
+-----+--------
+ 100 | host
+(1 row)
+
+=# select * from dblink.fetch(1, 2) as t(c1 integer, c2 text);
+ c1  |   c2
+-----+--------
+ 500 | remote
+  10 | dddddd
+(2 rows)
+
+=# select dblink.close(1);
+ close
+-------
+ t
+(1 row)
+
+=# COMMIT;
+</pre>
+
+<h3>DDL文の実行</h3>
+<p>分散トランザクション中にDDLの実行を許していないDBMSでは、dblink.connect()で use_xa を false で接続し、DDL文を dblink.exec()で実行します。</p>
+<pre>
+=# SELECT dblink.connect('conn_ora', 'server_oracle', false);
+ connect
+---------
+ t
+(1 row)
+
+=# SELECT dblink.exec('conn_ora', 'CREATE TABLE dblink_tbl (id NUMBER(4), value VARCHAR2(100))');
+ exec
+------
+    0
+(1 row)
+
+=# SELECT dblink.disconnect('conn_ora');
+ disconnect
+------------
+ t
+(1 row)
+</pre>
+
+<h2 id="functions">関数</h2>
+<p>dblink_plus は下記の関数を含みます。</p>
+
+<h3>dblink.connect(server, use_xa DEFAULT true) : boolean</h3>
+<p>
+外部サーバ 'server' に接続します。接続の名前は 'server' になります。
+use_xa が true の場合、自動トランザクション管理が有効になります。
+接続は、セッション終了時または dblink.disconnect() を呼ぶまで維持されます。
+<dl>
+<dt>server</dt>
+<dd>外部サーバ名です。</dd>
+<dt>use_xa</dt>
+<dd>自動トランザクションの有効／無効を true/false で指定します。</dd>
+</dl>
+</p>
+<p>
+返値:
+新規の接続の場合は true が返却されます。
+既に同じ名前の接続があった場合は false が返却されます。
+</p>
+
+<h3>dblink.connect(name, server, use_xa DEFAULT true) : boolean</h3>
+<p>
+外部サーバ 'server' に接続します。接続の名前は 'name' になります。
+それ以外は dblink.connect(server, use_xa) と同じです。
+</p>
+
+<h3>dblink.disconnect(name) : boolean</h3>
+<p>
+名前 'name' の接続を切断します。
+ただし、この関数はすぐには切断しません。
+トランザクションの終了時に実際に切断します。
+<dl>
+<dt>name</dt>
+<dd>切断する接続名です。</dd>
+</dl>
+</p>
+<p>
+返値:
+指定した名前の接続が存在した場合は true が返却されます。
+見つからなければ false が返却されます。(エラーにはなりません)
+</p>
+
+<h3>dblink.query(name, sql, fetchsize DEFAULT 0, max_value_len DEFAULT -1) : SETOF record</h3>
+<p>
+参照SQLを実行します。'name'に外部サーバー名を指定した場合、SQLの実行前に該当サーバーへ接続を行います。またSQL実行後に該当サーバーから切断を行います。
+<dl>
+<dt>name</dt>
+<dd>接続名または外部サーバー名を指定します。</dd>
+<dt>sql</dt>
+<dd>実行するSQL文です。</dd>
+<dt>fetchsize</dt>
+<dd>内部バッファの行数です。0を指定すると外部データベース・コネクタで最適な値となります。</dd>
+<dt>max_value_len</dt>
+<dd>取り扱う列データの最大長（文字列に変換後のバイト長）を指定します。<br>
+Oracle外部サーバ定義の 'max_value_len' オプションと同様の効果があり、dblink.query()の実行範囲内で有効となります。0を指定すると外部サーバ定義の 'max_value_len' オプション指定は無視され、内部的に列バッファを自動調整しながら検索処理が行なわれます。引数を省略した場合は、外部サーバ定義の 'max_value_len' オプション指定に従い動作します。この引数はOracleコネクタのみで有効となります。</dd>
+</dl>
+</p>
+<p>
+返値:
+結果の行セットです。
+</p>
+
+<h3>dblink.exec(name, sql) : bigint</h3>
+<p>
+更新SQLを実行します。
+<dl>
+<dt>name</dt>
+<dd>接続名または外部サーバー名を指定します。</dd>
+<dt>sql</dt>
+<dd>実行するSQL文です。</dd>
+</dl>
+</p>
+<p>
+返値:
+SQLが影響した行数です。
+</p>
+
+<h3>dblink.cursor [TYPE]</h3>
+<p>
+カーソルハンドルです。
+</p>
+
+<h3>dblink.open(name, sql, fetchsize DEFAULT 100, max_value_len DEFAULT -1) : dblink.cursor</h3>
+<p>
+参照SQLを実行し、結果を分割して取得するためのカーソルを作成します。その後カーソルをdblink.fetch()とdblink.close()で操作することができます。
+<dl>
+<dt>name</dt>
+<dd>接続名または外部サーバー名を指定します。</dd>
+<dt>sql</dt>
+<dd>実行するSQL文です。</dd>
+<dt>fetchsize</dt>
+<dd>内部バッファの行数です。0を指定すると外部データベース・コネクタで最適な値となります。</dd>
+<dt>max_value_len</dt>
+<dd>取り扱う列データの最大長（文字列に変換後のバイト長）を指定します。<br>
+Oracle外部サーバ定義の 'max_value_len' オプションと同様の効果があり、dblink.open()で作成したカーソルの範囲内で有効となります。0を指定すると外部サーバ定義の 'max_value_len' オプション指定は無視され、内部的に列バッファを自動調整しながら検索処理が行なわれます。引数を省略した場合は、外部サーバ定義の 'max_value_len' オプション指定に従い動作します。この引数はOracleコネクタのみで有効となります。</dd>
+</dl>
+</p>
+<p>
+返値:
+カーソルハンドルです。
+PostgreSQLコネクタ利用時において、引数 fetchsize に1以上が指定され、かつクエリの結果が0件となる場合は、カーソルが作成されずにカーソルハンドルは常に0値で返却されます。
+</p>
+
+<h3>dblink.fetch(dblink.cursor, howmany DEFAULT 1)</h3> 
+<p>
+カーソルから結果を分割して取得します。オープンされていない無効なカーソルハンドル値を引数 dblink.cursor に指定した場合は、エラーとせずに0件の結果が返却されます。
+<dl>
+<dt>dblink.cursor</dt>
+<dd>カーソルハンドルです。</dd>
+<dt>howmany</dt>
+<dd>フェッチする行数です。</dd>
+</dl>
+</p>
+<p>
+返値:
+結果の行セットです。
+</p>
+
+<h3>dblink.close(dblink.cursor)</h3> 
+<p>
+カーソルを閉じます。オープンされていない無効なカーソルハンドル値を引数 dblink.cursor に指定した場合でもエラーとしません。
+<dl>
+<dt>dblink.cursor</dt>
+<dd>カーソルハンドルです。</dd>
+</dl>
+</p>
+
+<h3>dblink.call(name, sql, fetchsize DEFAULT 0, max_value_len DEFAULT -1) : SETOF record</h3> 
+<p>
+ストアドファンクションを実行します。
+<dl>
+<dt>name</dt>
+<dd>接続名または外部サーバー名を指定します。</dd>
+<dt>sql</dt>
+<dd>実行するストアドファンクション名です。</dd>
+<dt>fetchsize</dt>
+<dd>内部バッファの行数です。0を指定すると外部データベース・コネクタで最適な値となります。</dd>
+<dt>max_value_len</dt>
+<dd>取り扱う列データの最大長（文字列に変換後のバイト長）を指定します。<br>
+Oracle外部サーバ定義の 'max_value_len' オプションと同様の効果があり、dblink.call()の実行範囲内で有効となります。0を指定すると外部サーバ定義の 'max_value_len' オプション指定は無視され、内部的に列バッファを自動調整しながら検索処理が行なわれます。引数を省略した場合は、外部サーバ定義の 'max_value_len' オプション指定に従い動作します。この引数はOracleコネクタのみで有効となります。</dd>
+</dl>
+</p>
+<p>
+返値:
+結果の行セットです。
+</p>
+
+<h3>dblink.connections [VIEW]</h3>
+<p>
+現在使用中の接続の一覧を返すビューです。
+</p>
+
+<h3>dblink.postgres(text[], oid) RETURNS boolean</h3> 
+<p>
+PostgreSQL に接続するためのコネクタです。
+外部データラッパ検証関数として実装されており、以下の形式で使用します。
+</p>
+<pre>CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;</pre>
+
+<h3>dblink.mysql(text[], oid) RETURNS boolean</h3> 
+<p>
+MySQL に接続するための外部データラッパ検証関数です。
+それ以外は dblink.postgres() と同じです。
+</p>
+
+<h3>dblink.oracle(text[], oid) RETURNS boolean</h3> 
+<p>
+Oracle に接続するための外部データラッパ検証関数です。
+それ以外は dblink.postgres() と同じです。
+</p>
+
+<h2 id="restrictions">使用上の注意と制約</h2>
+<p>dblink_plus を使用する際には、以下の使用上の注意と制約があります。</p>
+
+
+<h3>Oracleコネクタで制限となる型</h3>
+<p>Oracleのデータ型 LONG, LONG RAW, NCLOB, BLOB, BFILE, RAW の検索についてはサポートしていません。
+これらのデータ型を検索した場合、"Not supported data type" のエラー、もしくはOracleのエラー（ORA-XXXXX）が発生します。</p>
+
+<h3>メモリ消費の問題</h3>
+<p>大量のデータを検索した場合、ローカルセッションのメモリを大量に消費する恐れがあります。なるべくサーバーサイドで絞込みを行ったSQLを発行してください。</p>
+<p>特にOracleのCLOB型のについては4Gバイトまでのテキストデータを格納できますが、Oracleコネクタは読み込みに必要なバッファを一度に取得するため、メモリ確保エラーでSQLが異常終了する場合があります。</p>
+<p>Oracleコネクタの外部サーバ定義や dblink.query()、dblink.open()、dblink.call()関数において 'max_value_len' の列データ長を指定した場合、フェッチ用のバッファとして消費されるメモリ量は、おおよそ「(max_value_len+1) × 列数 × フェッチ行数」となります。</p>
+
+<h3>PostgreSQLでは2相コミットを有効にする</h3>
+<p>PostgreSQLコネクタを使って接続する場合、2相コミットを有効にするため、リモートデータベースのGUCパラメータ max_prepared_transactions を1以上に設定してください。</p>
+
+
+<h2 id="details">詳細</h2>
+<h3>全体構成</h3>
+<img src="dblink_plus-ja.png" />
+
+<h3>dblink.call()で呼出し可能ファンクションの型式</h3>
+<p>
+呼出し可能のファンクションは、各DBMSによって作成方法に制約があります。
+</p>
+<h4>Oracleのストアドプロシージャ</h4>
+<p>カーソルとの連携のため、パッケージの作成とカーソル型の定義、およびレコードを出力するプロシージャを作成する必要があります。</p>
+<p>下の例は、dblinkというパッケージを作成し、そのパッケージ内プロシージャとしてf_test()を作成しています。</p>
+<pre>
+CREATE OR REPLACE PACKAGE dblink AS
+TYPE RT1 IS RECORD ( ret NUMBER );
+TYPE RCT1 IS REF CURSOR RETURN RT1;
+PROCEDURE f_test(RC IN OUT RCT1, num IN NUMBER);
+END;
+
+CREATE OR REPLACE PACKAGE BODY dblink AS
+PROCEDURE f_test(RC IN OUT RCT1, num IN NUMBER)
+AS
+BEGIN
+    OPEN RC FOR
+    select c1 + num from test_tbl;
+END f_test;
+END;
+</pre>
+<p>このプロシージャは、以下のようにcall関数を使って呼び出します。</p>
+<pre>
+=# select * from dblink.call('sv_ora', 'dblink.f_test(100)') as t(id integer);
+</pre>
+
+<h4>PostgreSQLのストアドファンクション</h4>
+出力パラメータを指定していない SETOF RECORD を戻すファンクションは呼び出すことができません。これは、PostgreSQL用call関数が、'select * from function()' の型式で関数を呼び出すためです。
+
+<h2 id="install">インストール方法</h2>
+<p>dblink_plus のインストールは、標準のcontribモジュールと同様です。</p>
+
+<h3>ビルド</h3>
+<p>pgxs を使ってビルドできます。</p>
+<pre>$ cd dblink_plus
+$ make USE_PGXS=1
+$ make USE_PGXS=1 install</pre>
+<p>
+デフォルトでは全てのコネクタがビルド対象となります。特定のコネクタを除外するにはコネクタフラグに0を指定します。
+<p>
+<pre>
+$ make MYSQL=0
+$ make MYSQL=0 install
+</pre>
+<p>
+コネクタフラグにはORACLE, MYSQL, SQLITE3があります。またコネクタとして PostgreSQL は除外することはできません。
+<p>
+
+<h3>データベースへの登録</h3>
+<p>dblink_plus を利用する場合には、対象のデータベースに対して $PGHOME/share/contrib/dblink_plus.sql を実行してください。</p>
+<pre>$ psql -d dbname -f $PGHOME/share/contrib/dblink_plus.sql</pre>
+
+<h3>データベースからの登録解除</h3>
+<p>dblink_plus が提供するコネクタを使用する全ての外部データラッパを削除下の後に、アンインストールスクリプトを実行してください。</p>
+<pre>$ psql -d dbname -f $PGHOME/share/contrib/uninstall_dblink_plus.sql</pre>
+
+
+<h2 id="requirement">動作環境</h2>
+<dl>
+<dt>PostgreSQLバージョン</dt>
+<dd>PostgreSQL 8.4.7, 9.0.3</dd>
+<dt>Oracleバージョン</dt>
+<dd>Oracle10g</dd>
+<dt>OS</dt>
+<dd>RHEL 5.5</dd>
+</dl>
+
+<h2 id="seealso">関連項目</h2>
+<a href="http://www.postgresql.jp/document/current/html/dblink.html">dblink</a>,
+<a href="http://www.postgresql.jp/document/current/html/sql-createforeigndatawrapper.html">CREATE FOREIGN DATA WRAPPER</a>,
+<a href="http://www.postgresql.jp/document/current/html/sql-createserver.html">CREATE SERVER</a>,
+<a href="http://www.postgresql.jp/document/current/html/sql-createusermapping.html">CREATE USER MAPPING</a>
+
+<hr />
+<p class="footer">Copyright (c) 2009, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+</body>
+</html>

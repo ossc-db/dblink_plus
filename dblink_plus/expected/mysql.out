@@ -1,0 +1,302 @@
+CREATE FOREIGN DATA WRAPPER mysql VALIDATOR dblink.mysql;
+CREATE SERVER server_mysql FOREIGN DATA WRAPPER mysql OPTIONS (dbname 'mysql');
+CREATE USER MAPPING FOR CURRENT_USER SERVER server_mysql OPTIONS (user 'root', password 'mysql');
+SELECT dblink.connect('conn_mysql', 'server_mysql', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'DROP TABLE IF EXISTS dblink_tbl');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'CREATE TABLE dblink_tbl (id integer, value text) ENGINE = InnoDB');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_mysql');
+ disconnect 
+------------
+ t
+(1 row)
+
+-- dblink.connect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+SELECT dblink.connect('conn_mysql', 'server_mysql');
+ connect 
+---------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name    |   srvname    | status | keep 
+------------+--------------+--------+------
+ conn_mysql | server_mysql | idle   | t
+(1 row)
+
+-- dblink.exec() with an existing connection
+SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(1, ''X'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(2, ''BB'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(3, ''CCC'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT * FROM dblink.query('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
+ id | value 
+----+-------
+  1 | X
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_mysql', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name    |   srvname    | status | keep 
+------------+--------------+--------+------
+ conn_mysql | server_mysql | used   | t
+(1 row)
+
+ROLLBACK;
+SELECT * FROM dblink.query('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
+ id | value 
+----+-------
+  1 | X
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_mysql', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name    |   srvname    | status | keep 
+------------+--------------+--------+------
+ conn_mysql | server_mysql | used   | t
+(1 row)
+
+COMMIT;
+SELECT * FROM dblink.query('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- dblink.query() with an existing connection
+BEGIN;
+SELECT * FROM dblink.query('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name    |   srvname    | status | keep 
+------------+--------------+--------+------
+ conn_mysql | server_mysql | used   | t
+(1 row)
+
+COMMIT;
+-- dblink.open() with an existing connection
+SELECT * FROM dblink.cursor_test(dblink.open('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+-- dblink.disconnect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name    |   srvname    | status | keep 
+------------+--------------+--------+------
+ conn_mysql | server_mysql | idle   | t
+(1 row)
+
+SELECT dblink.disconnect('conn_mysql');
+ disconnect 
+------------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.query() with an anonymous connection
+BEGIN;
+SELECT * FROM dblink.query('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name     |   srvname    | status | keep 
+--------------+--------------+--------+------
+ server_mysql | server_mysql | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.exec() with an anonymous connection
+BEGIN;
+SELECT dblink.exec('server_mysql', 'UPDATE dblink_tbl SET value = value WHERE id < 3');
+ exec 
+------
+    0
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name     |   srvname    | status | keep 
+--------------+--------------+--------+------
+ server_mysql | server_mysql | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.open() with an anonymous connection
+SELECT * FROM dblink.cursor_test(dblink.open('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test(dblink.open('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.query() with max_value_len option
+SELECT * FROM dblink.query('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id', 0, 1) AS (id integer, value text);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- dblink.open() with max_value_len option
+SELECT * FROM dblink.cursor_test(dblink.open('server_mysql', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 1), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- connection without automatic transaction management
+SELECT dblink.connect('conn_mysql', 'server_mysql', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_mysql', 'DROP TABLE IF EXISTS dblink_tbl');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_mysql');
+ disconnect 
+------------
+ t
+(1 row)
+

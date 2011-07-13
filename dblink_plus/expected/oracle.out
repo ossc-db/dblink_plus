@@ -1,0 +1,396 @@
+CREATE FOREIGN DATA WRAPPER oracle VALIDATOR dblink.oracle;
+CREATE SERVER server_oracle FOREIGN DATA WRAPPER oracle OPTIONS (dbname 'dbt');
+CREATE USER MAPPING FOR CURRENT_USER SERVER server_oracle OPTIONS (user 'scott', password 'tiger');
+CREATE SERVER server_oracle2 FOREIGN DATA WRAPPER oracle OPTIONS (dbname 'dbt', max_value_len '4');
+CREATE USER MAPPING FOR CURRENT_USER SERVER server_oracle2 OPTIONS (user 'scott', password 'tiger');
+CREATE SERVER server_oracle3 FOREIGN DATA WRAPPER oracle OPTIONS (dbname 'dbt', max_value_len '3');
+CREATE USER MAPPING FOR CURRENT_USER SERVER server_oracle3 OPTIONS (user 'scott', password 'tiger');
+SELECT dblink.connect('conn_ora', 'server_oracle', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_ora', 'CREATE TABLE dblink_tbl (id NUMBER(4), value VARCHAR2(100))');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.exec('conn_ora', 'CREATE TABLE lob_test (id NUMBER(5), value CLOB, value2 CLOB)');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_ora');
+ disconnect 
+------------
+ t
+(1 row)
+
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(1, ''X'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(2, ''BB'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(3, ''CCC'')');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')');
+ exec 
+------
+    1
+(1 row)
+
+CREATE TABLE dblink_tmp_ora (LIKE dblink_tbl);
+CREATE FUNCTION dblink.cursor_test_ora(cursor integer, howmany integer)
+RETURNS SETOF dblink_tmp_ora AS
+$$
+TRUNCATE dblink_tmp_ora;
+INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+SELECT * FROM dblink_tmp_ora;
+$$
+LANGUAGE sql;
+-- dblink.connect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+SELECT dblink.connect('conn_oracle', 'server_oracle');
+ connect 
+---------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name     |    srvname    | status | keep 
+-------------+---------------+--------+------
+ conn_oracle | server_oracle | idle   | t
+(1 row)
+
+-- dblink.exec() with an existing connection
+SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(i int, v text);
+ i |  v   
+---+------
+ 1 | X
+ 2 | BB
+ 3 | CCC
+ 4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_oracle', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name     |    srvname    | status | keep 
+-------------+---------------+--------+------
+ conn_oracle | server_oracle | used   | t
+(1 row)
+
+ROLLBACK;
+SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(i int, v text);
+ i |  v   
+---+------
+ 1 | X
+ 2 | BB
+ 3 | CCC
+ 4 | DDDD
+(4 rows)
+
+BEGIN;
+SELECT dblink.exec('conn_oracle', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+ exec 
+------
+    1
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name     |    srvname    | status | keep 
+-------------+---------------+--------+------
+ conn_oracle | server_oracle | used   | t
+(1 row)
+
+COMMIT;
+SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(i int, v text);
+ i |  v   
+---+------
+ 1 | A
+ 2 | BB
+ 3 | CCC
+ 4 | DDDD
+(4 rows)
+
+-- dblink.query() with an existing connection
+BEGIN;
+SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name     |    srvname    | status | keep 
+-------------+---------------+--------+------
+ conn_oracle | server_oracle | used   | t
+(1 row)
+
+COMMIT;
+-- dblink.open() with an existing connection
+SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+-- dblink.disconnect()
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+    name     |    srvname    | status | keep 
+-------------+---------------+--------+------
+ conn_oracle | server_oracle | idle   | t
+(1 row)
+
+SELECT dblink.disconnect('conn_oracle');
+ disconnect 
+------------
+ t
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.query() with an anonymous connection
+BEGIN;
+SELECT * FROM dblink.query('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |    srvname    | status | keep 
+---------------+---------------+--------+------
+ server_oracle | server_oracle | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.exec() with an anonymous connection
+BEGIN;
+SELECT dblink.exec('server_oracle', 'UPDATE dblink_tbl SET value = value WHERE id < 3');
+ exec 
+------
+    2
+(1 row)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+     name      |    srvname    | status | keep 
+---------------+---------------+--------+------
+ server_oracle | server_oracle | used   | f
+(1 row)
+
+COMMIT;
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- dblink.open() with an anonymous connection
+SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+(3 rows)
+
+SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
+ name | srvname | status | keep 
+------+---------+--------+------
+(0 rows)
+
+-- CLOB data read
+SELECT dblink.exec('server_oracle', 'insert into lob_test values(1, lpad(''Z'', 2000, ''Z''), lpad(''z'', 1000, ''z''))');
+ exec 
+------
+    1
+(1 row)
+
+SELECT dblink.exec('server_oracle', 'insert into lob_test values(2, lpad(''Y'', 4000, ''Y''), lpad(''y'', 3000, ''y''))');
+ exec 
+------
+    1
+(1 row)
+
+SELECT id, length(value), length(value2) from dblink.query('server_oracle', 'select * from lob_test') as (id integer, value text, value2 text) order by id;
+ id | length | length 
+----+--------+--------
+  1 |   2000 |   1000
+  2 |   4000 |   3000
+(2 rows)
+
+-- dblink.query() with max_value_len option
+SELECT * FROM dblink.query('server_oracle2', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+SELECT * FROM dblink.query('server_oracle3', 'SELECT * FROM dblink_tbl ORDER BY id', 0, 4) AS t(id integer, value text) ORDER BY id;
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- dblink.open() with max_value_len option
+SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 4), 100);
+ id | value 
+----+-------
+  1 | A
+  2 | BB
+  3 | CCC
+  4 | DDDD
+(4 rows)
+
+-- connection without automatic transaction management
+SELECT dblink.connect('conn_oracle', 'server_oracle', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_oracle', 'DROP TABLE dblink_tbl');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.exec('conn_oracle', 'DROP TABLE lob_test');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_oracle');
+ disconnect 
+------------
+ t
+(1 row)
+
+SELECT dblink.connect('conn_oracle', 'server_oracle', false);
+ connect 
+---------
+ t
+(1 row)
+
+SELECT dblink.exec('conn_oracle', 'CREATE OR REPLACE PACKAGE dblink AS TYPE RT1 IS RECORD ( ret NUMBER ); TYPE RCT1 IS REF CURSOR RETURN RT1; PROCEDURE f_test(RC1 IN OUT RCT1, num IN NUMBER); END;');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.exec('conn_oracle', 'CREATE OR REPLACE PACKAGE BODY dblink AS PROCEDURE f_test(RC1 IN OUT RCT1, num IN NUMBER) AS BEGIN OPEN RC1 FOR select num + 1000 from dual; END f_test; END;');
+ exec 
+------
+    0
+(1 row)
+
+SELECT dblink.disconnect('conn_oracle');
+ disconnect 
+------------
+ t
+(1 row)
+
+-- dblink.call() with an anonymous connection
+SELECT * FROM dblink.call('server_oracle', 'dblink.f_test(1)') AS t(a integer);
+  a   
+------
+ 1001
+(1 row)
+
+--  dblink.call() with max_value_len option
+SELECT * FROM dblink.call('server_oracle2', 'dblink.f_test(1)') AS t(a integer);
+  a   
+------
+ 1001
+(1 row)
+
+SELECT * FROM dblink.call('server_oracle3', 'dblink.f_test(1)', 0, 4) AS t(a integer);
+  a   
+------
+ 1001
+(1 row)
+
