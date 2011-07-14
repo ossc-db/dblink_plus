@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -z "$SYNCDB_HOME" ]; then
+	echo "set environment variable SYNCDB_HOME"
+	exit 1
+fi
+
+MY_ABS_DIR=`dirname $0`
+
+export CLASSPATH=${SYNCDB_HOME}:${MY_ABS_DIR}/../lib/*:$CLASSPATH
+
+java jp.co.ntt.oss.SyncDatabase "$@"

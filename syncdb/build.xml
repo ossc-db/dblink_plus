@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="syncdb" default="all" basedir=".">
+	<!-- property file -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- set property -->
+	<property name="project" value="SyncDatabase" />
+	<property name="packagenames" value="syncdb" />
+	<property name="jar.dest" location="${basedir}/jar" />
+	<property name="jar.file" value="${packagenames}.jar" />
+	<property name="build.src" location="${basedir}/src" />
+	<property name="build.dest" location="${basedir}/classes" />
+	<property name="test.src" location="${basedir}/testset" />
+	<property name="test.dest" location="${basedir}/testbin" />
+	<property name="test.reports" location="${basedir}/reports" />
+	<property name="package.dest" location="${basedir}/package" />
+	<property name="package.file" value="${packagenames}.zip" />
+	<property name="lib" value="lib" />
+	<property name="bin" value="bin" />
+	<property name="sql" value="sql" />
+	<property name="samples" value="samples" />
+	<property name="conf" value="conf" />
+	<property name="findbugs.home" value="findbugs" />
+	<property name="checkstyle.home" value="checkstyle" />
+
+	<!-- set classpath -->
+	<path id="build.classpath">
+		<fileset dir="${lib}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<path id="test.classpath">
+		<pathelement location="${build.dest}" />
+		<pathelement location="${test.dest}" />
+		<pathelement location="${conf}" />
+		<fileset dir="${lib}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<path id="checkstyle.classpath">
+		<fileset dir="${checkstyle.home}/${lib}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<!-- default target -->
+	<target name="all" depends="prepare, jar" description="compile all" />
+
+	<!-- prepare -->
+	<target name="prepare" description="prepare comilling">
+		<tstamp />
+		<mkdir dir="${build.dest}" />
+	</target>
+
+	<!-- compile -->
+	<target name="compile" depends="prepare" description="compile all sources">
+		<javac srcdir="${build.src}" destdir="${build.dest}" encoding="UTF-8" classpathref="build.classpath" includeantruntime="no">
+		</javac>
+		<copy todir="${build.dest}">
+			<fileset dir="${build.src}">
+				<include name="**/*.properties" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- testset prepare -->
+	<target name="test_prepare" description="test prepare comilling">
+		<mkdir dir="${test.dest}" />
+	</target>
+
+	<!-- testset compile -->
+	<target name="test_compile" depends="test_prepare, compile" description="test comile all sources">
+		<javac srcdir="${test.src}" destdir="${test.dest}" encoding="UTF-8" classpathref="test.classpath" includeantruntime="no">
+		</javac>
+	</target>
+
+	<!-- clean files -->
+	<target name="clean" description="cleaning">
+		<delete dir="${build.dest}" />
+		<delete dir="${test.dest}" />
+		<delete dir="${test.reports}" />
+		<delete dir="${jar.dest}" />
+		<delete dir="${package.dest}" />
+	</target>
+
+	<!-- compression -->
+	<target name="jar" depends="compile" description="make jar file">
+		<mkdir dir="${jar.dest}" />
+		<jar destfile="${jar.dest}/${jar.file}" basedir="${build.dest}" />
+	</target>
+
+	<!-- package -->
+	<target name="package" depends="jar" description="create package">
+		<mkdir dir="${package.dest}" />
+
+		<zip destfile="${package.dest}/${package.file}">
+			<zipfileset prefix="${packagenames}/${samples}" dir="${samples}" includes="*.xml" filemode="644" />
+			<zipfileset prefix="${packagenames}/${lib}" dir="${lib}" includes="*.jar" filemode="644" />
+			<zipfileset prefix="${packagenames}/${lib}" file="${jar.dest}/${jar.file}" filemode="644" />
+			<zipfileset prefix="${packagenames}/${sql}" dir="${sql}" includes="*.sql" filemode="644" />
+			<zipfileset prefix="${packagenames}/${bin}" dir="${bin}" includes="syncdb" filemode="755" />
+		</zip>
+	</target>
+
+	<!-- install -->
+	<target name="install" depends="jar" description="install syncdb">
+		<mkdir dir="${install.prefix}" />
+
+		<copy todir="${install.prefix}/${samples}" overwrite="yes">
+			<fileset dir="${samples}" includes="*.xml" />
+		</copy>
+		<copy todir="${install.prefix}/${lib}" overwrite="yes">
+			<fileset dir="${lib}" includes="*.jar" />
+		</copy>
+		<copy todir="${install.prefix}/${lib}" file="${jar.dest}/${jar.file}" />
+		<copy todir="${install.prefix}/${sql}" overwrite="yes">
+			<fileset dir="${sql}" includes="*.sql" />
+		</copy>
+		<copy todir="${install.prefix}/${bin}" overwrite="yes">
+			<fileset dir="${bin}" includes="syncdb" />
+		</copy>
+
+		<chmod dir="${install.prefix}" perm="755" />
+		<chmod perm="755" type="dir">
+			<fileset dir="${install.prefix}" includes="**/*" />
+		</chmod>
+		<chmod perm="644" type="file">
+			<fileset dir="${install.prefix}" includes="**/*" />
+		</chmod>
+		<chmod file="${install.prefix}/${bin}/syncdb" perm="755" />
+	</target>
+
+	<!-- uninstall -->
+	<target name="uninstall" description="uninstall syncdb">
+		<delete dir="${install.prefix}" />
+	</target>
+
+	<!-- unit test -->
+	<target name="test" depends="compile, test_compile" description="unit test">
+		<mkdir dir="${test.reports}" />
+
+		<!-- reset db data -->
+		<exec executable="data/init_mlog_postgresql.sh" />
+
+		<!-- execute test -->
+		<junit printsummary="yes" haltonfailure="no" showoutput="on">
+			<formatter type="xml" />
+			<classpath refid="test.classpath" />
+			<batchtest fork="no" todir="${test.reports}">
+				<fileset dir="${test.src}">
+					<include name="**/*Test.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<!-- generate report -->
+		<junitreport todir="${test.reports}">
+			<fileset dir="${test.reports}">
+				<include name="TEST-*.xml" />
+			</fileset>
+			<report todir="${test.reports}" />
+		</junitreport>
+	</target>
+
+	<!-- check -->
+	<!-- FindBugs -->
+	<target name="findbugs" depends="jar" description="run FindBugs">
+		<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${findbugs.home}/${lib}/findbugs-ant.jar" />
+
+		<mkdir dir="${test.reports}" />
+
+		<findbugs home="${findbugs.home}/${lib}" output="text" outputFile="${test.reports}/FindBugs.out" excludefilter="${findbugs.home}/findbugsExcludeFilter.xml" reportlevel="medium">
+			<class location="${jar.dest}/${jar.file}" />
+			<auxClasspath>
+				<path refid="build.classpath" />
+			</auxClasspath>
+			<sourcePath path="${build.src}" />
+		</findbugs>
+	</target>
+
+	<!-- Checkstyle -->
+	<target name="checkstyle" depends="compile" description="run Checkstyle">
+		<taskdef name="checkstyle" classname="com.puppycrawl.tools.checkstyle.CheckStyleTask" classpath="${checkstyle.home}/${lib}/checkstyle-5.1.jar">
+			<classpath refid="checkstyle.classpath" />
+		</taskdef>
+
+		<mkdir dir="${test.reports}" />
+
+		<!-- syncdb style check -->
+		<checkstyle config="${checkstyle.home}/syncdb_checks.xml">
+			<fileset dir="${build.src}" includes="**/*.java" />
+			<classpath>
+				<pathelement location="${build.dest}" />
+				<path refid="build.classpath" />
+			</classpath>
+			<formatter type="plain" tofile="${test.reports}/Checkstyle_syncdb.out" />
+		</checkstyle>
+
+		<!-- sun style check -->
+		<checkstyle config="${checkstyle.home}/sun_checks.xml">
+			<fileset dir="${build.src}" includes="**/*.java" />
+			<classpath>
+				<pathelement location="${build.dest}" />
+				<path refid="build.classpath" />
+			</classpath>
+			<formatter type="plain" tofile="${test.reports}/Checkstyle_sun.out" />
+		</checkstyle>
+
+		<!-- eclipse style check -->
+		<checkstyle config="${checkstyle.home}/eclipse_checks.xml">
+			<fileset dir="${build.src}" includes="**/*.java" />
+			<classpath>
+				<pathelement location="${build.dest}" />
+				<path refid="build.classpath" />
+			</classpath>
+			<formatter type="plain" tofile="${test.reports}/Checkstyle_eclipse.out" />
+		</checkstyle>
+	</target>
+</project>

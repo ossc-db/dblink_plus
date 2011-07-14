@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SyncDatabase>
+	<jdbcResource>
+		<name>
+			postgres
+        </name>
+		<className>
+			org.postgresql.Driver
+        </className>
+		<url>
+			jdbc:postgresql://pgdb:5432/postgres
+        </url>
+		<username>
+			postgres
+        </username>
+		<password>
+		</password>
+	</jdbcResource>
+
+	<jdbcResource>
+		<name>
+			oracle
+        </name>
+		<className>
+			oracle.jdbc.driver.OracleDriver
+        </className>
+		<url>
+			jdbc:oracle:thin:@oradb:1521:syncdb
+        </url>
+		<username>
+			syncdb
+        </username>
+		<password>
+			syncdb
+        </password>
+	</jdbcResource>
+</SyncDatabase>

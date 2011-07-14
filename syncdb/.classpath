@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="jp/co/ntt/oss/old/" kind="src" path="src"/>
+	<classpathentry kind="src" output="testbin" path="testset"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="lib/commons-cli-1.2.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://commons.apache.org/cli/api-release/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/junit-4.8.1.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="lib/jotm-core.jar"/>
+	<classpathentry kind="lib" path="lib/commons-digester-2.0.jar"/>
+	<classpathentry kind="lib" path="lib/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-beanutils-1.8.3.jar"/>
+	<classpathentry kind="lib" path="lib/jotm-client.jar"/>
+	<classpathentry kind="lib" path="lib/xapool.jar"/>
+	<classpathentry kind="lib" path="lib/ojdbc14.jar"/>
+	<classpathentry kind="lib" path="lib"/>
+	<classpathentry kind="lib" path="lib/postgresql-8.4-701.jdbc4.jar"/>
+	<classpathentry kind="lib" path="conf"/>
+	<classpathentry kind="output" path="classes"/>
+</classpath>

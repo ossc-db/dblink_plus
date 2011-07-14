@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+	<Match classregex="jp.co.ntt.oss.FullWriter">
+		<Method name="prepare" />
+		<BugPattern name="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.IncrementalWriter">
+		<Method name="prepare" />
+		<BugPattern name="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.data.SyncDatabaseDAO">
+		<Method name="getIncrementalRefreshCost" />
+		<BugPattern name="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.IncrementalWriter">
+		<BugPattern name="EI_EXPOSE_REP2" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.mapper.MappingData">
+		<Method name="setDataMappers" />
+		<BugPattern name="EI_EXPOSE_REP2" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.mapper.MappingData">
+		<Method name="getDataMappers" />
+		<BugPattern name="EI_EXPOSE_REP" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.data.MasterStatus">
+		<BugPattern name="MS_MUTABLE_ARRAY" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.data.ReplicaStatus">
+		<BugPattern name="MS_MUTABLE_ARRAY" />
+	</Match>
+
+	<Match classregex="jp.co.ntt.oss.data.SyncDatabaseDAO">
+		<Or>
+			<Method name="chooseFastestMode" />
+			<Method name="getIncrementalRefreshCost" />
+			<Method name="getLogCount" />
+			<Method name="getMasterStatus" />
+			<Method name="getMaxMlogID" />
+			<Method name="getReplicaStatus" />
+			<Method name="getSubscriber" />
+			<Method name="getSubscription" />
+		</Or>
+		<BugPattern name="OBL_UNSATISFIED_OBLIGATION" />
+	</Match>
+</FindBugsFilter>

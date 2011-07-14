@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SyncDatabase>
+    <jdbcResource>
+        <name>
+            postgres1
+        </name>
+        <className>
+            org.postgresql.Driver
+        </className>
+        <url>
+            jdbc:postgresql://moomin:5431/syncdb1
+        </url>
+        <username>
+            syncdbuser
+        </username>
+        <password>
+        </password>
+    </jdbcResource>
+    
+    <jdbcResource>
+        <name>
+            postgres2
+        </name>
+        <className>
+            org.postgresql.Driver
+        </className>
+        <url>
+            jdbc:postgresql://moomin:5431/syncdb2
+        </url>
+        <username>
+            syncdbuser
+        </username>
+        <password>
+        </password>
+    </jdbcResource>
+    
+    <jdbcResource>
+        <name>
+            oracle
+        </name>
+        <className>
+            oracle.jdbc.driver.OracleDriver
+        </className>
+        <url>
+            jdbc:oracle:thin:@lesslog:1521:syncdb
+        </url>
+        <username>
+            syncdb
+        </username>
+        <password>
+            syncdb
+        </password>
+    </jdbcResource>
+    
+    <jdbcResource>
+        <name>
+            testName
+        </name>
+        <className>
+            testClassName
+        </className>
+        <url>
+            testUrl
+        </url>
+        <username>
+            testUsername
+        </username>
+        <password>
+            testPassword
+        </password>
+    </jdbcResource>
+</SyncDatabase>
