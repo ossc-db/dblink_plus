@@ -1,0 +1,1024 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>syncdb</title>
+<link rel="home" title="syncdb " href="index.html">
+<link rel="stylesheet" TYPE="text/css"href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+<h1 id="syncdb">syncdb 1.0</h1>
+<div class="navigation">
+  <a href="index-ja.html">Top</a> &gt;
+  <a href="syncdb-ja.html">syncdb</a>
+<div>
+<hr />
+
+<div class="index">
+<ol>
+<li><a href="#name">名前</a></li>
+<li><a href="#synopsis">概要</a></li>
+<li><a href="#introduction">導入方法</a></li>
+<ol>
+  <li><a href="#prepare">インストール前の準備</a></li>
+  <li><a href="#install">インストール</a></li>
+  <li><a href="#configuration">設定ファイル</a></li>
+  <li><a href="#classpath">環境変数の設定</a></li>
+  <li><a href="#uninstall">アンインストール</a></li>
+</ol>
+<li><a href="#examples">使用方法</a></li>
+<li><a href="#usage">コマンドリファレンス</a></li>
+<ol>
+  <li><a href="#create">更新差分ログの構築</a></li>
+  <li><a href="#create-replica">レプリカテーブル作成</a></li>
+  <li><a href="#attach">マスタテーブル関連付け</a></li>
+  <li><a href="#refresh">レプリカテーブル最新化</a></li>
+  <li><a href="#detach">マスタテーブル関連付け解除</a></li>
+  <li><a href="#drop">更新差分ログの削除</a></li>
+  <li><a href="#status">登録状態の確認</a></li>
+  <li><a href="#version">バージョンの確認</a></li>
+</ol>
+<li><a href="#restrictions">使用上の注意と制約</a></li>
+<ol>
+  <li><a href="#on-abort">異常時の対処</a></li>
+</ol>
+<li><a href="#internal">内部構成</a></li>
+<ol>
+  <li><a href="#build">ソースパッケージのビルド方法</a></li>
+  <li><a href="#syncdb-img">syncdbの構成</a></li>
+  <li><a href="#log-method">更新差分ログ方式</a></li>
+  <li><a href="#syncdb-jars">外部ライブラリ一覧</a></li>
+</ol>
+<li><a href="#requirement">動作環境</a></li>
+</ol>
+</div>
+
+<h2 id="name">名前</h2>
+syncdb -- あるテーブルのデータ変更を、他のテーブルへ伝播します。
+
+<h2 id="synopsis">概要</h2>
+<p>syncdb は、特定のクエリの実行結果を、他のデータベースに保存するためのツールです。 元のデータに変更があった際には、その差分だけを効率よく同期できます。</p>
+<p>データの伝播方法として、同期元テーブルに対するクエリ結果の全体を伝播する方式と、同期元テーブルの差分情報のみを伝播する方式の、2つの方式をサポートします。
+<br>後者の伝播方式については、同期元となるテーブル中のプライマリキーに基づいて差分情報を収集／適用する方式を採用しているため、更新クエリ自体を差分情報として保持する方式と比べて更新差分の情報量がコンパクトで済み、少量のデータ転送量で同期が可能です。</p>
+
+<p>本ツールは Java で作成されたDBクライアントアプリケーションです。JDBCドライバを利用して同期元テーブルと同期先テーブルにアクセスしますので、Java実行環境と接続先DBMSのJDBCドライバが用意されている環境であれば、どこのホスト上でも実行が可能です。</p>
+
+<p>接続先となるDBMSは、PostgreSQL と Oracle に対応しており、PostgreSQL ⇒ PostgreSQL、PostgreSQL ⇒ Oracle、および Oracle ⇒ PostgreSQL へのデータ伝播機能を提供します。</p>
+<p>その他、syncdb には以下の特徴があります。</p>
+<ul>
+<li>1つのマスタから、異なる製品の複数のレプリカへ伝播できます。</li>
+<li>マスタとレプリカは異なるDBMSでも、同一のDBMSでも構いません。</li>
+<li>あるレプリカを別のマスタに設定し、カスケード構成を取ることもできます。</li>
+</ul>
+<p>以下に、本マニュアルで用いる用語の定義を示します。</p>
+<table>
+<caption>用語定義</caption>
+<thead>
+  <tr>
+    <th width=25%>用語</th>
+    <th width=75%>説明</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>マスタテーブル</td>
+    <td>データ伝播元のテーブル。</td>
+  </tr>
+  <tr>
+    <td>レプリカテーブル</td>
+    <td>データ伝播先のテーブル。</td>
+  </tr>
+  <tr>
+    <td>リフレッシュ</td>
+    <td>マスタテーブルからレプリカテーブルにデータの伝播を実施する処理。</td>
+  </tr>
+  <tr>
+    <td>差分リフレッシュ</td>
+    <td>マスタテーブルの更新差分ログ情報に基づいたデータ伝播方式。</td>
+  </tr>
+  <tr>
+    <td>全体リフレッシュ</td>
+    <td>差分リフレッシュでは伝播効率が悪い場合や、リフレッシュで用いるクエリが複雑なSQLであるため差分リフレッシュ自体が利用不可能な場合に適用される、クエリ結果の全体をコピーするデータ伝播方式。</td>
+  </tr>
+</tbody>
+</table>
+
+
+<p>syncdb を利用する上で必要となる主な操作について、以下に示します。</p>
+<ol>
+  <li><a href="#create">マスタテーブルの更新差分ログ構築</a>
+<br>差分リフレッシュを可能とするために、マスタテーブルの更新差分ログを構築する操作です。 常に全体リフレッシュのみを実施する場合は必須でありません。</li>
+  <li><a href="#create-replica">レプリカテーブル作成</a>
+<br>マスタテーブルのデータ形式に合わせてレプリカテーブルの定義を行う操作です。 通常、CREATE TABLE 文でレプリカテーブルを作成します。</li>
+  <li><a href="#attach">レプリカテーブルとマスタテーブルの関連付け</a>
+<br>マスタテーブルとレプリカテーブルの関連付け情報を構築するための操作です。</li>
+  <li><a href="#refresh">レプリカテーブルの最新化(リフレッシュ)</a>
+<br>マスタテーブルのデータをレプリカテーブルに伝播し格納を行うための操作です。 差分リフレッシュと全体リフレッシュの方式があります。 本ツールの運用中は、この操作を繰り返すことになります。</li>
+  <li><a href="#detach">マスタテーブルとの関連付け解除</a>
+<br>レプリカテーブルの最新化が必要でなくなった場合に、マスタテーブルとレプリカテーブルの関連付け情報を削除する操作です。</li>
+  <li><a href="#drop">マスタテーブルの更新差分ログ削除</a>
+<br>マスタテーブルの更新差分ログが全てのレプリカテーブル側から使用されなくなり、更新差分ログを収集する必要がなくなった場合に更新ログを削除する操作です。</li>
+  <li><a href="#status">登録状態の確認</a>
+<br>マスタテーブルとレプリカテーブルの関連付け情報や管理情報を確認するための操作です。</li>
+</ol>
+
+<p>syncdb を使用する上で、分類されるユーザと権限を以下に示します。ユーザは3つに分類されます。<p>
+<table>
+<caption>ユーザと権限</caption>
+<thead>
+  <tr>
+    <th width=20%>ユーザ</th>
+    <th width=40%>操作</th>
+    <th width=40%>権限</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>syncdb 管理者</td>
+    <td>・syncdb パッケージのインストール<br>・syncdb パッケージのアンインストール</td>
+    <td>マスタ側サーバおよびレプリカ側サーバに対して「データベース管理者(スーパユーザ)」権限が必要。</td>
+  </tr>
+  <tr>
+    <td>マスタテーブル所有者相当</td>
+    <td>・マスタテーブルの更新差分ログ構築<br>・マスタテーブルの更新差分ログ削除<br>(syncdb create/drop)</td>
+    <td>マスタテーブルに対して「SELECT」,「TRIGGER」権限が必要。 ※1</td>
+  </tr>
+  <tr>
+    <td>syncdb 利用者</td>
+    <td>・レプリカテーブルとマスタテーブルの関連付け<br>・レプリカテーブルの最新化(リフレッシュ)<br>・マスタテーブルとの関連付け解除<br>(syncdb attach/refresh/detach)</td>
+    <td>マスタテーブルに対して「SELECT」権限が必要。<br>レプリカテーブルに対して「SELECT」,「INSERT」,「UPDATE」,「DELETE」,「TRUNCATE」権限が必要。 ※2</td>
+  </tr>
+</tbody>
+</table>
+<p>※1： 差分更新ログの削除は、差分更新ログを構築したユーザのみが可能となります。<br>
+※2： 関連付けの解除は、関連付けを行ったユーザのみが可能となります。</p>
+
+<h2 id="introduction">導入方法</h2>
+<p>syncdb の基本的な導入方法について説明します。</p>
+
+<h3 id="prepare">インストール前の準備</h3>
+<p>インストール前に必要となる準備と、syncdb が動作するための環境確認について説明します。</p>
+
+<h4>JDBCドライバのダウンロード</h4>
+<p>インストール用のパッケージにはJDBC ドライバが含まれていないため、接続先DBMSに合わせてJDBCドライバをダウンロードします。 <a href="#requirement">動作環境</a> の記載条件に合致するバージョンをダウンロードしてください。</p>
+
+<h4>動作環境の確認</h4>
+<p>syncdb を実行するホスト上のJava実行環境(Java VM)が、 <a href="#requirement">動作環境</a> の記載条件と合致しているかを確認します。 記載条件と異なる場合は、インストールを行って動作環境を構築してください。</p>
+<p>例） Java実行環境の確認</p>
+<pre>$ java -version
+java version "1.6.0"
+OpenJDK  Runtime Environment (build 1.6.0-b09)
+OpenJDK Client VM (build 1.6.0-b09, mixed mode)</pre>
+
+<h3 id="install">インストール</h3>
+syncdb のインストール方法について説明します。
+
+<h4>バイナリパッケージによるインストール</h4>
+<p>バイナリパッケージ syncdb.zip ファイルを展開します。 展開後に作成された syncdb ディレクトリがインストール先ディレクトとなりますので、必要に応じて syncdb ディレクトリを任意の場所に移動してください。</p>
+<pre>$ cd /home/syncdb
+$ unzip syncdb.zip</pre>
+<p>バイナリパッケージ展開後は、以下の構成となります。</p>
+<pre>$ tree syncdb
+syncdb
+|-- bin
+|   `-- syncdb
+|-- lib
+|   |-- (外部ライブラリファイル)
+|   `-- syncdb.jar
+|-- samples
+|   |-- jdbcResource.xml
+|   `-- log4j.xml
+`-- sql
+    |-- mlog_oracle.sql
+    |-- mlog_postgresql.sql
+    |-- observer_oracle.sql
+    |-- observer_postgresql.sql
+    |-- uninstall_mlog_oracle.sql
+    |-- uninstall_mlog_postgresql.sql
+    |-- uninstall_observer_oracle.sql
+    `-- uninstall_observer_postgresql.sql</pre>
+
+<h4>DBモジュールのインストール</h4>
+<p>マスタ側DBとレプリカ側DBに対して、syncdb のDBモジュールをインストールします。</p>
+<p>マスタ側のDBに対して、(インストール先ディレクトリ)/sql 配下のマスタ用インストールSQLスクリプトを実行します。 PostgreSQL用は mlog_postgresql.sql、Oracle用は mlog_oracle.sql をデータベース管理者用ユーザ(スーパユーザ)で実行します。</p>
+<p>例） PostgreSQL</p>
+<pre>$ psql -U postgres -f /home/syncdb/syncdb/sql/mlog_postgresql.sql -d master_db</pre>
+<p>例） Oracle</p>
+<pre>$ sqlplus system/password@master_db @/home/syncdb/syncdb/sql/mlog_oracle.sql</pre>
+<p>レプリカ側のDBに対して、(インストール先ディレクトリ)/sql 配下のレプリカ用インストールSQLスクリプトを実行します。 PostgreSQL用 observer_postgresql.sql、Oracle用 observer_oracle.sql をデータベース管理者用ユーザ(スーパユーザ)で実行します。</p>
+<p>例） PostgreSQL</p>
+<pre>$ psql -U postgres -f /home/syncdb/syncdb/sql/observer_postgresql.sql -d replica_db</pre>
+<p>例） Oracle</p>
+<pre>$ sqlplus system/password@replica_db @/home/syncdb/syncdb/sql/observer_oracle.sql</pre>
+
+<h4>JDBCドライバの配置</h4>
+<p>ダウンロードしたJDBCドライバを、インストール先ディレクトリの lib/ 配下にコピーします。</p>
+<p>例） PostgreSQL JDBCドライバ</p>
+<pre>$ cp postgresql-8.4-701.jdbc4.jar /home/syncdb/syncdb/lib</pre>
+<p>例） Oracle JDBCドライバ</p>
+<pre>$ cp ojdbc14.jar /home/syncdb/syncdb/lib</pre>
+
+<h3 id="configuration">設定ファイル</h3>
+<p>syncdb 用の設定ファイルには、マスタ側DBとレプリカ側DBの接続情報を記述する jdbcResource.xml と、syncdb が出力するログの出力形式を設定する log4j.xml  があります。 以下に設定方法を示します。</p>
+
+
+<h4>設定ファイルの配置先</h4>
+<p>(インストール先ディレクトリ)/samples/ 配下の jdbcResource.xml と log4j.xml を、任意のディレクトリにコピーし、動作環境に合わせて設定情報を編集します。 後述する <a href="#classpath">環境変数 SYNCDB_HOME</a> に設定ファイルの格納ディレクトリを指定することで、syncdb 実行時に指定先の設定ファイルが優先的に読み込まれます。 jdbcResource.xml ファイルにはDB接続ユーザとパスワードが記述されていますので、他ユーザのREAD権のないディレクトリに設定ファイルを配置するなど、パーミッションを考慮した配置を行ってください。</p>
+<pre>$ cp /home/syncdb/syncdb/samples/*.xml /home/syncdb
+$ vi /home/syncdb/jdbcResource.xml
+$ vi /home/syncdb/log4j.xml</pre>
+
+<h4>jdbcResource.xml の設定</h4>
+<p>マスタ側サーバとレプリカ側サーバの接続情報の設定を、jdbcResource.xml ファイルに XML の形式で記述します。</p>
+
+<table>
+<caption>jdbcResource.xml の設定</caption>
+<thead>
+  <tr>
+    <th>タグ</th>
+    <th>設定内容</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="center">&lt;SyncDatabase&gt;</td>
+    <td>syncdb のサーバ接続情報であることを表すタグです。要素として &lt;jdbcResource&gt; タグを複数記述することが可能です。</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;jdbcResource&gt;</td>
+    <td>1つのサーバ接続情報であることを表し、以降のタグとコンテンツ（設定値）の情報を持ちます。</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;name&gt;</td>
+    <td>syncdb スクリプトのコマンドで指定する接続名（リソース名）を記述します。</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;className&gt;</td>
+    <td>使用するJDBCドライバのクラス名を記述します。
+<br>PostgreSQL の場合：
+<br>　　org.postgresql.Driver
+<br>Oracle の場合：
+<br>　　oracle.jdbc.driver.OracleDriver</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;url&gt;</td>
+    <td>使用するJDBCドライバに従った接続用のURLを、以下の形式で記述します。
+<br>([ ]内は省略可能)
+<br>PostgreSQL の場合：
+<br>　　jdbc:postgresql://ホスト[:ポート番号]/DB名
+<br>Oracle の場合：
+<br>　　jdbc:oracle:thin:@ホスト[:ポート番号]:Oracle SID</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;username&gt;</td>
+    <td>接続ユーザ名を記述します。</td>
+  </tr>
+  <tr>
+    <td align="center">&lt;password&gt;</td>
+    <td>接続ユーザのパスワードを記述します。</td>
+  </tr>
+</tbody>
+</table>
+
+<p>以下に jdbcResource.xml の設定例を示します。</p>
+<pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;SyncDatabase&gt;
+    &lt;jdbcResource&gt;
+        &lt;name&gt;pg_mdb&lt;/name&gt;
+        &lt;className&gt;org.postgresql.Driver&lt;/className&gt;
+        &lt;url&gt;jdbc:postgresql://pgserver/master_db&lt;/url&gt;
+        &lt;username&gt;user1name&lt;/username&gt;
+        &lt;password&gt;user1password&lt;/password&gt;
+    &lt;/jdbcResource&gt;
+
+    &lt;jdbcResource&gt;
+        &lt;name&gt;pg_rdb&lt;/name&gt;
+        &lt;className&gt;org.postgresql.Driver&lt;/className&gt;
+        &lt;url&gt;jdbc:postgresql://192.168.1.100:5432/replica_db&lt;/url&gt;
+        &lt;username&gt;user2name&lt;/username&gt;
+        &lt;password&gt;user2password&lt;/password&gt;
+    &lt;/jdbcResource&gt;
+
+    &lt;jdbcResource&gt;
+        &lt;name&gt;oradb&lt;/name&gt;
+        &lt;className&gt;oracle.jdbc.driver.OracleDriver&lt;/className&gt;
+        &lt;url&gt;jdbc:oracle:thin:@oraserver:1521:master_db&lt;/url&gt;
+        &lt;username&gt;user3name&lt;/username&gt;
+        &lt;password&gt;user3password&lt;/password&gt;
+    &lt;/jdbcResource&gt;
+&lt;/SyncDatabase&gt;</pre>
+
+<h4>log4j.xml の設定</h4>
+<p>syncdb が出力するログ出力形式の設定を、log4j.xml ファイルに XML の形式で記述します。</p>
+<p>以下の設定例では、ログの出力先に標準出力とファイル出力の両方を指定し、ファイルの出力先については syncdb スクリプト実行時のカレントディレクトリ上に、syncdb.log というファイル名で出力する設定となっています。 出力するメッセージレベルは、jp.co.ntt.oss パッケージ配下が出力するメッセージを INFO レベル以上、外部ライブラリ等、その他が出力するメッセージについては ERROR レベル以上とする設定となっており、ログの書式としてファイル出力の場合は [出力日時] も出力しています。</p>
+<p>詳細については <a href="http://logging.apache.org/log4j/1.2/index.html">Apache log4j</a> を参照してください。</p>
+<pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE log4j:configuration SYSTEM &quot;log4j.dtd&quot;&gt;
+&lt;log4j:configuration xmlns:log4j=&quot;http://jakarta.apache.org/log4j/&quot;&gt;
+    &lt;appender name=&quot;STDOUT&quot; class=&quot;org.apache.log4j.ConsoleAppender&quot;&gt;
+        &lt;layout class=&quot;org.apache.log4j.PatternLayout&quot;&gt;
+            &lt;param name=&quot;ConversionPattern&quot; value=&quot;%-5p - %m%n&quot; /&gt;
+        &lt;/layout&gt;
+    &lt;/appender&gt;
+
+    &lt;appender name=&quot;FILE&quot; class=&quot;org.apache.log4j.FileAppender&quot;&gt;
+        &lt;param name=&quot;File&quot; value=&quot;./syncdb.log&quot; /&gt;
+        &lt;param name=&quot;Append&quot; value=&quot;true&quot; /&gt;
+        &lt;layout class=&quot;org.apache.log4j.PatternLayout&quot;&gt;
+            &lt;param name=&quot;ConversionPattern&quot; value=&quot;[%d] %-5p - %m%n&quot; /&gt;
+        &lt;/layout&gt;
+    &lt;/appender&gt;
+
+    &lt;logger name=&quot;jp.co.ntt.oss&quot;&gt;
+        &lt;level value=&quot;info&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;root&gt;
+        &lt;level value=&quot;error&quot; /&gt;
+        &lt;appender-ref ref=&quot;STDOUT&quot; /&gt;
+        &lt;appender-ref ref=&quot;FILE&quot; /&gt;
+    &lt;/root&gt;
+&lt;/log4j:configuration&gt;</pre>
+
+<h3 id="classpath">環境変数の設定</h3>
+<p>環境変数 SYNCDB_HOME に jdbcResource.xml と log4j.xml の格納ディレクトリを設定してください。 syncdb の動作時には、環境変数 SYNCDB_HOME に記述されたディレクトリ配下の設定ファイルを優先して読み込みます。 SYNCDB_HOME が未設定の場合はエラーとなり、SYNCDB_HOME 配下に設定ファイルがない場合については、(インストール先ディレクトリ)/lib、CLASSPATH 環境変数の順番で jdbcResource.xml と log4j.xml が検索されます。</p>
+<pre>$ export SYNCDB_HOME=/home/syncdb</pre>
+<p>(インストール先ディレクトリ)/bin を PATH に追加します。</p>
+<pre>$ export PATH=/home/syncdb/syncdb/bin:$PATH</pre>
+
+<h3 id="uninstall">アンインストール</h3>
+syncdb のアンインストール方法について説明します。
+
+<h4>DBモジュールのアンインストール</h4>
+<p>マスタ側のDBに対して、(インストール先ディレクトリ)/sql 配下のマスタ用アンインストールSQLスクリプトを実行します。 PostgreSQL用は uninstall_mlog_postgresql.sql、Oracle用は uninstall_mlog_oracle.sql をデータベース管理者用ユーザ(スーパユーザ)で実行します。</p>
+<p>例） PostgreSQL</p>
+<pre>$ psql -U postgres -f /home/syncdb/syncdb/sql/uninstall_mlog_postgresql.sql -d master_db</pre>
+<p>例） Oracle</p>
+<pre>$ sqlplus system/password@master_db @/home/syncdb/syncdb/sql/uninstall_mlog_oracle.sql</pre>
+
+<p>レプリカ側の DB に対して、(インストール先ディレクトリ)/sql 配下のレプリカ用アンインストールSQLスクリプトを実行します。 PostgreSQL用は uninstall_observer_postgresql.sql、Oracle用は uninstall_observer_oracle.sql をデータベース管理者用ユーザ(スーパユーザ)で実行します。</p>
+<p>例） PostgreSQL</p>
+<pre>$ psql -U postgres -f /home/syncdb/syncdb/sql/uninstall_observer_postgresql.sql -d replica_db</pre>
+<p>例） Oracle</p>
+<pre>$ sqlplus system/password@replica_db @/home/syncdb/syncdb/sql/uninstall_observer_oracle.sql</pre>
+
+<h4>ツール本体のアンインストール</h4>
+<p>本ツールをインストールしたディレクトリを削除してください。</p>
+
+<h2 id="examples">使用方法</h2>
+<p>以下に、更新差分ログを利用した syncdb の実行例を示します。 なお syncdb スクリプトの実行例において --master と --server オプションに指定するのは、jdbcResource.xml で設定する接続名（リソース名）となります。</p>
+<ol>
+  <li>【前準備】 マスタ用のテーブルを作成します。 後述する「syncdb create」で更新差分ログを構築するためには、マスタテーブル中にプライマリキーが必要となります。 以下の例では pgbench を用いてマスタテーブルを構築しています。</li>
+  <pre>$ pgbench -i master_db</pre>
+  <li>【前準備】 マスタテーブルの更新差分ログを構築します。</li>
+  <pre>$ syncdb create --master pg_mdb --schema public --table pgbench_accounts
+INFO  - create success</pre>
+  <li>【前準備】 レプリカ用のテーブルを作成します。 後述する「syncdb attach」で指定されたクエリの実行結果と、同系のデータ型／列の並び順を一致させておく必要があります。</li>
+  <pre>$ psql -c 'CREATE TABLE rep_accounts(aid int, bid int, abalance int, PRIMARY KEY(aid))' \
+       -d replica_db</pre>
+  <li>【前準備】 マスタテーブルとレプリカテーブルの関連付けを行います。 クエリはマスタ側DBMSのSQL文法で、スキーマ名とテーブル名をダブルクォートで括った形式で指定してください。</li>
+  <pre>$ syncdb attach --master pg_mdb --server pg_rdb --schema public --table rep_accounts
+input query : SELECT aid, bid, abalance FROM "public"."pgbench_accounts"&lt;改行&gt;を入力
+&lt;ctrl+d&gt;を入力
+INFO  - attach incremental refresh mode, subscribe id : 1</pre>
+  <li>【前準備】 レプリカテーブルの内容を最新化(リフレッシュ)します。 関連付け後の初回のリフレッシュでは、必ず全体リフレッシュが行われます。</li>
+  <pre>$ syncdb refresh --server pg_rdb --schema public --table rep_accounts --mode auto
+INFO  - full refresh (insert:100,000)</pre>
+  <li>【運用中】 マスタテーブルを更新します。</li>
+  <pre>$ pgbench -c 10 -t 100 master_db</pre>
+  <li>【運用中】 syncdb の登録情報を確認します。 last refresh列はそのレプリカが最後にリフレッシュした日時、logs列は未反映分の更新差分ログ行数、cost列は全体リフレッシュに対する差分リフレッシュの推定コストの比となり、リフレッシュの実施判断となる情報を取得することができます。 詳細については <a href="#status">登録状態の確認</a> を参照してください。</li>
+  <pre>$ syncdb status --master pg_mdb --server pg_rdb --cost
+INFO  - master status
+ schema | table            | logs | subs | oldest refresh      | oldest replica
+--------+------------------+------+------+---------------------+----------------
+ public | pgbench_accounts | 1000 |    1 | 2010-07-07 17:17:39 | pg_rdb
+
+INFO  - replica status
+ schema | table        | last refresh        | master | cost
+--------+--------------+---------------------+--------+------
+ public | rep_accounts | 2010-07-07 17:17:39 | pg_mdb | 0.0400</pre>
+  <li>【運用中】 レプリカテーブル内容を最新化(リフレッシュ)します。 上記の状態ではコスト値に基づいて自動的に差分リフレッシュが選択されます。 ただし、コスト値が1.0以上の場合や、マスタテーブルで TRUNCATE が行われていた場合は、全体リフレッシュが行われます。 通常、運用中はリフレッシュの操作を繰り返して、レプリカを最新化することになります。</li>
+  <pre>$ syncdb refresh --server pg_rdb --schema public --table rep_accounts --mode auto
+INFO  - incremental refresh (insert:0 update:1,000 delete:0)</pre>
+  <li>【後始末】 レプリカテーブルを最新化する必要がなくなった場合は、マスタテーブルとレプリカテーブルの関連付けを解除します。</li>
+  <pre>$ syncdb detach --server pg_rdb --schema public --table rep_accounts
+INFO  - detach success</pre>
+  <li>【後始末】 全てのレプリカから更新差分ログが参照されておらず、更新差分ログ自体が不要となった場合は、マスタテーブルの更新差分ログを削除します。</li>
+  <pre>$ syncdb drop --master pg_mdb --schema public --table pgbench_accounts
+INFO  - drop success</pre>
+</ol>
+
+<h2 id="usage">コマンドリファレンス</h2>
+<p>syncdb スクリプトのコマンド詳細について説明します。</p>
+
+<h3 id="create">更新差分ログの構築</h3>
+<p>マスタ側サーバに接続し、定義済みのマスタテーブルについて、更新差分ログの蓄積を開始します。 差分リフレッシュが可能なレプリカを作成するためには、後述する「syncdb attach」に先立って、本操作を実行しておく必要があります。 マスタテーブルにプライマリキーが存在しない場合はエラーとなり、更新差分ログは構築されません。 既に本操作によってマスタテーブルが登録済みの場合はエラーとなります。<br>本操作を実行するには syncdb create コマンドを実行します。</p>
+<pre>syncdb create
+    --master &lt;resource_name&gt;
+    --schema &lt;schema_name&gt;
+    --table &lt;table_name&gt;
+    [--help]</pre>
+<dl>
+<dt>--master</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、マスタ側サーバに接続します。</dd>
+<dt>--schema</dt>
+<dd>更新差分ログの構築対象となるマスタテーブルのスキーマ名 &lt;schema_name&gt; を指定します。</dd>
+<dt>--table</dt>
+<dd>更新差分ログの構築対象となるマスタテーブルのテーブル名 &lt;table_name&gt; を指定します。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<h3 id="create-replica">レプリカテーブル作成</h3>
+<p>レプリカ側サーバに接続し、レプリカテーブルを作成します。 レプリカテーブルの定義は、後述する「syncdb attach」で指定されたクエリの実行結果と、同系のデータ型／列の並び順を一致させておく必要があります。 一致しない場合のリフレッシュ処理動作に関しては保証されません。 差分リフレッシュを利用する場合は、レプリカテーブルのテーブル定義でプライマリキー以外のカラムに対してユニーク制約を付与しないでください。 リフレッシュ時にユニーク制約違反が発生する場合があります。 ユニーク制約の代わりにインデックスを付与することをお勧めします。</p>
+
+<h3 id="attach">マスタテーブル関連付け</h3>
+<p>定義済みのレプリカテーブルと、マスタ側でクエリを実行した結果に対する関連付けを登録します。  既に本操作によってレプリカテーブルが登録済みの場合はエラーとなります。<br>本操作を実行するには syncdb attach コマンドを実行します。</p>
+<pre>syncdb attach
+    --master &lt;resource_name&gt;
+    [--query &lt;query&gt;]
+    --server &lt;resource_name&gt;
+    --schema &lt;schema_name&gt;
+    --table &lt;table_name&gt;
+    [--mode { full | incr[emental] }]
+    [--help]</pre>
+<dl>
+<dt>--master</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、マスタ側サーバに接続します。</dd>
+<dt>[--query]</dt>
+<dd>レプリカテーブルを更新する際に、マスタ側サーバに対して発行するクエリ &lt;refresh query&gt; を指定します。 クエリは、マスタ側のDBMSに準じた SQL 文法で、スキーマ名とテーブル名をダブルクォートで括った形式で指定してください。
+<br><br>※コマンドライン処理用の外部ライブラリの不具合により、--query を用いたクエリ指定でエラーが発生する場合があります。オプションの値の先頭または末尾にダブルクォートを含む場合に、ダブルクォートが取り除かれてしまうという不具合のため、<br>
+例） 「SELECT * FROM "Schema"."Table"」のクエリを指定して関連付けする場合は、<br>
+<pre>$ syncdb attach --query "\"SELECT * FROM \"Schema\".\"Table\"\""  --master pg_mdb \
+        --server pg_rdb --schema Schema --table Table</pre>
+という形式でエスケープを行った上で指定してください。
+<br><br>--query を指定しない場合は標準入力待ちとなりますので、クエリ文字列を入力してください。 キー入力する場合は入力の終了コードとして &lt;改行&gt;を入力後、&lt;ctrl+d&gt; (EOF) を入力してください。
+<pre>$ syncdb attach --master pg_mdb --server pg_rdb --schema public --table rep_accounts
+input query : SELECT * FROM "Schema"."Table"&lt;改行&gt;を入力
+&lt;ctrl+d&gt;を入力</pre>
+</dd>
+<dt>--server</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、レプリカ側サーバに接続します。</dd>
+<dt>--schema</dt>
+<dd>レプリカテーブルとして登録するテーブルのスキーマ名 &lt;schema_name&gt; を指定します。</dd>
+<dt>--table</dt>
+<dd>レプリカテーブルとして登録するテーブル名 &lt;table_name&gt; を指定します。 レプリカテーブルは、&lt;refresh query&gt; の結果と同系のデータ型／列の並び順で結果データを格納するテーブルとして、syncdb attach に先立って作成しておく必要があります。</dd>
+
+<dt>[--mode { full | incr[emental] }]</dt>
+<dd>--mode full が指定された場合は、常に全体リフレッシュのみの動作となります。
+<br>--mode incr[emental] が指定された場合は、差分リフレッシュでの関連付けを試みます。
+<br>--mode が指定されていない場合は、--mode incr[emental] の動作となります。
+<br>差分リフレッシュでの関連付けを試みた場合、クエリで指定したSQLが <a href="#restrictions">差分リフレッシュ対応クエリ</a> であり、対象マスタテーブルが「syncdb create」によって更新差分ログが構築済み、という条件を満たした場合に限り、差分リフレッシュと全体リフレッシュの両方が実行可能となります。 それ以外の場合はエラーとなります。
+<br>本操作において、常に全体リフレッシュのみとして関連付けが行われた場合は、マスタ側サーバにDBモジュールがインストールされていない状態でも、全体リフレッシュを可能とします。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<h3 id="refresh">レプリカテーブル最新化</h3>
+<p>関連付けが登録済みのレプリカテーブルの内容を、リフレッシュ処理を行って最新の状態にします。<br>本操作を実行するには syncdb refresh コマンドを実行します。</p>
+<pre>syncdb refresh
+    --server &lt;resource_name&gt;
+    --schema &lt;schema_name&gt;
+    --table &lt;table_name&gt;
+    [--mode { full | incr[emental] | auto }]
+    [--concurrent]
+    [--help]</pre>
+<dl>
+<dt>--server</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、レプリカ側サーバに接続します。</dd>
+<dt>--schema</dt>
+<dd>リフレッシュ対象となるレプリカテーブルのスキーマ名 &lt;schema_name&gt; を指定します。</dd>
+<dt>--table</dt>
+<dd>リフレッシュ対象となるレプリカテーブルのテーブル名 &lt;table_name&gt; を指定します。</dd>
+<dt>[--mode { full | incr[emental] | auto }]</dt>
+<dd>--mode が full の場合は、必ず全体リフレッシュを行います。
+<br>--mode が incr[emental] の場合は、必ず差分リフレッシュを試みますが、syncdb attach による関連付けが全体リフレッシュのみで行われた場合や、syncdb attach 後の最初のリフレッシュ、あるいはマスタテーブルの TRUNCATE 後の最初のリフレッシュで、差分リフレッシュが利用不可能と判断された場合はエラーとなります。
+<br>--mode が auto もしくは --mode の指定がない場合は、--mode incr の条件と <a href="#status">syncdb status --cost</a> の値による更新処理の効率性を syncdb 内部で判断して、全体リフレッシュか差分リフレッシュかを自動的に振り分けます。</dd>
+<dt>[--concurrent]</dt>
+<dd>全体リフレッシュ処理時にのみ有効となるオプションです。
+<br>レプリカ側のDBMSがPostgreSQLの場合、--concurrent の指定がない場合は、更新中にレプリカテーブルが排他ロックされる場合があります。 --concurrent の指定がある場合は、ROW EXCLUSIVE 以下の強度のロックとなります。 更新中に参照が必要なければ、--concurrent を指定しない方が全体リフレッシュの全件削除処理で "DELETE FROM" の代わりに "TRUNCATE" が使用されるため、高速に処理が行えます。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<p>コマンド完了時には、実行したリフレッシュの種類と、レプリカテーブルに対する更新件数が出力されます。 </p>
+<ul>
+<li>全体リフレッシュ時の更新件数は、INSERT の件数を出力
+<pre>$ syncdb refresh --server pg_rdb --schema public --table rep_accounts --mode auto
+INFO  - full refresh (insert:100,000)</pre></li>
+<li>差分リフレッシュ時の更新件数は、INSERT / UPDATE / DELETE の各件数を出力
+<pre>$ syncdb refresh --server pg_rdb --schema public --table rep_accounts --mode auto
+INFO  - incremental refresh (insert:0 update:1,000 delete:0)</pre></li>
+</ul>
+
+<p>差分リフレッシュの差分更新方式の弱点として、ランダム I/O が発生し易いことが挙げられます。 ランダム I/O が多発して性能上問題が生じる場合は、全体リフレッシュを実行することを検討してください。</p>
+
+<h3 id="detach">マスタテーブル関連付け解除</h3>
+<p>マスターテーブルとレプリカテーブルの関連付けを解除します。レプリカテーブルとその中のデータは、そのまま残されます。<br>本操作を実行するには syncdb detach コマンドを実行します。</p>
+<pre>syncdb detach
+    --server &lt;resource_name&gt;
+    --schema &lt;schema_name&gt;
+    --table &lt;table_name&gt;
+    [--force]
+    [--help]</pre>
+<dl>
+<dt>--server</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、レプリカ側サーバに接続します。</dd>
+<dt>--schema</dt>
+<dd>解除対象となるレプリカテーブルのスキーマ名 &lt;schema_name&gt; を指定します。</dd>
+<dt>--table</dt>
+<dd>解除対象となるレプリカテーブルのテーブル名 &lt;table_name&gt; を指定します。</dd>
+<dt>[--force]</dt>
+<dd>--force の指定がある場合は、マスタ側の情報を取得できない場合においてもエラーとせずに、関連付けを強制的に解除します。 この場合、マスタ側サーバ内に保持されている関連付けの登録情報は、削除されません。 syncdb status で管理情報を確認した上、<a href="#on-abort">異常時の対処</a> に従って削除を行ってください。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<h3 id="drop">更新差分ログの削除</h3>
+<p>マスタ側サーバに接続し、マスタテーブルについての更新差分ログの蓄積を停止し、更新差分ログを削除します。 マスタ側サーバ内に保持されているレプリカ側との関連付けの登録情報が残っている場合は、全て削除されます。 この場合、レプリカ側サーバ内に保持されている関連付けの登録情報は、削除されません。 syncdb status で管理情報を確認した上、<a href="#on-abort">異常時の対処</a> に従って削除を行ってください。
+<br>本操作を実行するには syncdb drop コマンドを実行します。</p>
+<pre>syncdb drop
+    --master &lt;resource_name&gt;
+    --schema &lt;schema_name&gt;
+    --table &lt;table_name&gt;
+    [--help]</pre>
+<dl>
+<dt>--master</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使って、マスタ側サーバに接続します。</dd>
+<dt>--schema</dt>
+<dd>更新差分ログの削除対象となるマスタテーブルのスキーマ名 &lt;schema_name&gt; を指定します。</dd>
+<dt>--table</dt>
+<dd>更新差分ログの削除対象となるマスタテーブルのテーブル名 &lt;table_name&gt; を指定します。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<h3 id="status">登録状態の確認</h3>
+<p>マスタ側サーバで保持している管理情報と、レプリカ側サーバで保持している管理情報を取得して出力します。<br>本操作を実行するには syncdb status コマンドを実行します。</p>
+<pre>syncdb status
+    --master &lt;resource_name&gt;
+    --server &lt;resource_name&gt;
+    [--schema &lt;schema_name&gt; --table &lt;table_name&gt;]
+    [--cost]
+    [--help]</pre>
+<dl>
+<dt>--master</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使ってマスタ側サーバに接続し、登録されているマスタ管理情報を出力します。 --master か --server のどちらか、もしくは両方を指定します。</dd>
+<dt>--server</dt>
+<dd>接続名 &lt;resource_name&gt; の接続情報を使ってレプリカ側サーバに接続し、登録されているレプリカ管理情報を出力します。 --master か --server のどちらか、もしくは両方を指定します。</dd>
+<dt>[--schema &lt;schema&gt; --table &lt;table_name&gt;]</dt>
+<dd>出力対象としたい(絞込みを行いたい)マスタあるいはレプリカテーブルのスキーマ名 &lt;schema_name&gt; とテーブル名 &lt;table_name&gt; を指定します。 指定しない場合は、全てのテーブルの登録状態を出力します。</dd>
+<dt>[--cost]</dt>
+<dd>--cost が指定されている場合は、全体リフレッシュに対する差分リフレッシュの推定コストの比を出力します。 1.0 よりも大きな場合は、差分リフレッシュよりも全体リフレッシュのほうが効率的です。 なお、差分リフレッシュに対応できない場合やコスト値が無限大となる場合は、Inf が出力されます。</dd>
+<dt>[--help]</dt>
+<dd>HELPメッセージを出力します。</dd>
+</dl>
+
+<p>以下に、本コマンドで出力される情報の内容を示します。</p>
+<table>
+<caption>マスタ側出力情報</caption>
+<thead>
+  <tr>
+    <th width>列名</th>
+    <th width>内容</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>schema</td>
+    <td>マスタテーブルのスキーマ名</td>
+  </tr>
+  <tr>
+    <td>table</td>
+    <td>マスタテーブル名</td>
+  </tr>
+  <tr>
+    <td>logs</td>
+    <td>未反映分の更新差分ログ行数（概数）</td>
+  </tr>
+  <tr>
+    <td>subs</td>
+    <td>同じマスタテーブルに関連付けされているレプリカ数</td>
+  </tr>
+  <tr>
+    <td>oldest refresh</td>
+    <td>最古のリフレッシュした日時</td>
+  </tr>
+  <tr>
+    <td>oldest replica</td>
+    <td>最古のリフレッシュしたレプリカ側DB接続名</td>
+  </tr>
+</tbody>
+</table>
+<br>
+<table>
+<caption>レプリカ側出力情報</caption>
+<thead>
+  <tr>
+    <th width>列名</th>
+    <th width>内容</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>schema</td>
+    <td>レプリカテーブルのスキーマ名</td>
+  </tr>
+  <tr>
+    <td>table</td>
+    <td>レプリカテーブル名</td>
+  </tr>
+  <tr>
+    <td>last refresh</td>
+    <td>最後にリフレッシュした日時</td>
+  </tr>
+  <tr>
+    <td>master</td>
+    <td>マスタ側DB接続名</td>
+  </tr>
+  <tr>
+    <td>cost</td>
+    <td>現在のリフレッシュコスト値</td>
+  </tr>
+</tbody>
+</table>
+
+<p>出力例:</p>
+<pre>$ syncdb status --master pg_mdb --server pg_rdb --cost
+INFO  - master status
+ schema | table            | logs | subs | oldest refresh      | oldest replica
+--------+------------------+------+------+---------------------+----------------
+ public | pgbench_accounts | 1670 |    2 | 2010-07-07 20:36:32 | pg_rdb
+ public | pgbench_branches | 1669 |    1 | 2010-07-07 20:36:40 | pg_rdb
+ public | pgbench_tellers  | 1672 |    1 | 2010-07-07 20:36:56 | pg_rdb
+
+INFO  - replica status
+ schema | table          | last refresh        | master | cost
+--------+----------------+---------------------+--------+------
+ public | rep_accounts   | 2010-07-07 20:36:32 | pg_mdb | 0.0668
+ public | rep_accounts_2 | 2010-07-07 20:41:18 | pg_mdb | 0.00
+ public | rep_branches   | 2010-07-07 20:36:40 | pg_mdb | 6.68e+03
+ public | rep_history    | 2010-07-07 20:37:02 | pg_mdb | Inf
+ public | rep_tellers    | 2010-07-07 20:36:56 | pg_mdb | 668</pre>
+
+<h3 id="version">バージョンの確認</h3>
+<p>バージョン情報を出力します。</p>
+<pre>syncdb --version</pre>
+
+<h2 id="restrictions">使用上の注意と制約</h2>
+<p>syncdb を使用する際には、以下の使用上の注意と制約があります。</p>
+
+<ul>
+<li>レプリカテーブルの定義は、syncdb attach で指定するクエリの実行結果と、データ型／列の並び順を一致させておく必要があります。 一致しない場合のリフレッシュ処理動作に関しては保証されません。 データ型のマッピングについてはデータ型が同系の型（文字型同士、数値データ型同士など）となるようにマッピングを行うのが基本となりますが、基本のマッピング以外の場合においては、文字列としてデータを取得した後にレプリカテーブルのデータ型にキャストしてデータの変換を試みます。</li>
+<li>差分リフレッシュを利用する場合は、レプリカテーブルのテーブル定義中にマスタテーブルと同様のプライマリキーが必要となります。</li>
+<li>差分リフレッシュを利用する場合は、レプリカテーブルのテーブル定義でプライマリキー以外のカラムに対してユニーク制約を付与しないでください。 リフレッシュ時にユニーク制約違反が発生する場合があります。 ユニーク制約の代わりにインデックスを付与することをお勧めします。</li>
+<li>syncdb スクリプトのコマンドオプションで指定するスキーマ名は必須となります。スキーマ名指定を省略して、テーブル名指定中にスキーマ名を含んだテーブル名を指定してもエラーとなります。</li>
+<li>syncdb スクリプトのコマンドオプションで指定するスキーマ名とテーブル名は、最終的にDBに格納される名称で指定してください。 スキーマおよびテーブル作成時に "Table_A" といったようにダブルクォートで括った名称で作成した場合は、syncdb のオプション指定時には Table_A で指定します。 ダブルクォートで括らずに作成した場合は、PostgreSQL の場合は lower case でDBに登録されますので table_a で、Oracle の場合は upper case となりますので TABLE_A で指定してください。</li>
+<li>syncdb attach で差分リフレッシュに対応するクエリは、以下の条件となります。 以下の条件外となるクエリについては、全体リフレッシュのみとして関連付けを行ってください。 その場合、マスタテーブル側の更新差分ログの構築は必要ありません。</li>
+<br>
+<table>
+<caption>差分リフレッシュ対応クエリ</caption>
+<thead>
+  <tr>
+    <th width>キーワード</th>
+    <th width>対応</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>SELECTリスト</td>
+    <td>・SELECT * 以外にも対応する。<br>・式、関数呼び出しには対応しない。<br>・エイリアス指定には対応しない。<br>・引用符（ダブルクォート）付き列名に対応する。<br>・プライマリキー カラムを含む必要がある。</td>
+  </tr>
+  <tr>
+    <td>FROM句</td>
+    <td>・指定できるテーブルは1つのみ。<br>・スキーマを指定する。<br>・スキーマ、テーブル共に必ず引用符（ダブルクォート）付けを行う。</td>
+  </tr>
+  <tr>
+    <td>WHERE句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>GROUP BY句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>HAVING句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>UNION句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>INTERSECT句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>ORDER BY句</td>
+    <td>対応しない。</td>
+  </tr>
+  <tr>
+    <td>DISTINCT句</td>
+    <td>対応しない。</td>
+  </tr>
+</tbody>
+</table>
+<br>
+<li>syncdb attach のオプション --query を使ってコマンドラインからクエリを指定する場合、コマンドライン処理用の外部ライブラリの不具合により、エラーが発生する場合があります。 オプションの値の先頭または末尾にダブルクォートが含まれているとダブルクォートを取り除いてしまうという不具合のため、以下の例のようにダブルクォートをエスケープしてください。<br>
+例） 「SELECT * FROM "Schema"."Table"」のクエリを指定して関連付けする場合
+<pre>$ syncdb attach --query "\"SELECT * FROM \"Schema\".\"Table\"\""  --master pg_mdb \
+        --server pg_rdb --schema Schema --table Table</pre></li>
+<li>syncdb attach のオプション --query を指定せずに直接クエリ文字列をキー入力する場合（標準入力）は、クエリ文字列を入力後、入力の終了コードとして &lt;改行&gt;を入力し、さらに &lt;ctrl+d&gt; (EOF) を入力してください。<pre>$ syncdb attach --master pg_mdb --server pg_rdb --schema public --table rep_accounts
+input query : SELECT * FROM "Schema"."Table"&lt;改行&gt;を入力
+&lt;ctrl+d&gt;を入力</pre></li>
+<li>マスタテーブルとレプリカテーブルを、同一のテーブルにすることはできません。</li>
+<li>更新差分ログの構築後、あるいは関連付け後に、マスタテーブル定義の構成を変更することはできません。 変更する場合は、既に関連付けが完了していれば syncdb detach で関連付けを解除し、更新差分ログの構築済みであれば  syncdb drop で更新差分ログを削除した後に、テーブル定義の構成を変更してください。</li>
+<li>差分リフレッシュに対応しているレプリカテーブルのデータを変更しないでください。 以降の差分リフレッシュで、データ内容の同期が取れなくなります。 このような状態に陥った場合は、一度 syncdb refresh --full で、強制的に全体リフレッシュを実行してください。</li>
+<li>マスタテーブル側の DBMS が Oracle で、syncdb create / attach / drop の実行途中にエラーが発生した場合において、Oracle側で実行されたDDLが完全にロールバックできないことがあります。 これは syncdb 内部で実行している Oracle のDDLが独立したトランザクションで実行されるためで、syncdb ではエラー発生時に実行済みのDDL操作を元に戻そうと試みますが、完全ではありません。</li>
+<li>syncdb が要求する外部ライブラリ（JDBCドライバも含む）と異なるバージョンの同ライブラリが、Javaの拡張ディレクトリ (Javaインストール先)/jre/lib/ext/ に存在しないことを確認してください。 異なるバージョンの同ライブラリが存在する場合は、syncdb インストール先の lib/ ディレクトリより先に (Javaインストール先)/jre/lib/ext/ ディレクトリが参照されますので、動作については保証されません。 syncdb で使用する外部ライブラリについては <a href="#syncdb-jars">外部ライブラリ一覧</a> と <a href="#requirement">動作環境</a> を参照してください。</li>
+<li>syncdb はマスタ側DBに対して2本のセッションを必要とします。 レプリカ側DBに対しては1本のセッションが必要です。 マスタとレプリカが同一DBの場合は最大3本のセッションを必要とします。</li>
+<li>syncdb は実行中に &lt;ctrl+c&gt; キーによる割り込みを行って処理を中断できますが、 syncdb を cron で実行している場合など、別のターミナル上から中断させたい場合は、syncdb スクリプトから実行される javaプロセスに対して直接 SIGTERM シグナルを送ってください。</li>
+</ul>
+
+<h3 id="on-abort">異常時の対処</h3>
+<ul>
+<li>更新差分ログテーブルの容量が増え続ける、あるいは想定以上に更新差分ログの量が多いという現象が発生する場合は、以下の点について確認してください。 更新差分ログは、マスタテーブルが TRUNCATE された場合と、マスタテーブルに関連付けされているレプリカがリフレッシュされ、全レプリカから参照されない不要なログと判断された場合に削除されます。 前者の場合は更新差分ログの全件、後者の場合は不要な更新差分ログのみが削除されます。</li>
+<ol>
+<li>syncdb status を実行して、関連付けられているレプリカ数（subs）を確認してみてください。 レプリカ数が 0 の場合は、そのマスタテーブルの更新差分ログは使用されていません。 レプリカを作成する予定がなければ、syncdb drop で対象マスタテーブルの更新差分ログを削除してください。</li>
+<li>syncdb status を実行して、最古のリフレッシュ日時（oldest refresh）を確認してみてください。 リフレッシュ日時に何も出力されていない場合は、まだ一度もリフレッシュが行われていません。 運用に影響のない時間帯に対象のレプリカテーブルをリフレッシュするか、レプリカが必要でないのならば、関連付けられているレプリカを syncdb detach で解除し、syncdb drop で対象マスタテーブルの更新差分ログを削除してください。</li>
+<li>syncdb status を実行して、差分ログ数（logs）と最古のリフレッシュ日時（oldest refresh）を確認してみてください。 リフレッシュ日時が古くて差分ログ数が大量に溜まっている場合は、単純にリフレッシュを実行し忘れていないかを確認してください。</li>
+<li>syncdb status を実行して、差分ログ数（logs）と最古のリフレッシュ日時（oldest refresh）を確認してみてください。 リフレッシュ日時が新しくて差分ログ数が大量に溜まっている場合は、マスタテーブルの更新に対してレプリカ側の更新が追いついていない状況が考えられます。このような場合は、可能であればマスタ側の更新数を減らすことも検討してみてください。</li>
+<li>syncdb status を実行して、該当マスタテーブルの差分ログ数（logs）と、そのマスタに関連付けられている差分リフレッシュ可能なレプリカテーブル数が一致するかを確認してみてください。 マスタ側の関連付け情報がレプリカ側より多い場合は、syncdb detach --force が実行されて関連付けを強制解除されたり、関連付け情報が残っている状態でレプリカ側ホストがネットワークから切り離された等が原因で、リフレッシュが行われなくなった状況が考えられます。 このような場合、対象となるマスタテーブルが他のレプリカと関連付けられていなければ syncdb drop で更新差分ログを削除してください。 他のレプリカと関連付けられている場合は、後述する <a href="#syncdb-img">syncdbの構成</a> で記述されている mlog.v$subscriber ビューを実行し関連付けが不正なレプリカを特定した上で、mlog.subscriber テーブル上から対象のレプリカ情報レコードを DELETE 文で削除してください。</li>
+</ol>
+
+<li>その他の不正な状態の確認</li>
+<ol>
+<li>syncdb status を実行した際にマスタテーブル名が空出力される場合は、関連付けが残った状態でマスタテーブルが手動で削除された可能性があります。 この状態でリフレッシュを行ってもエラーとなりますので、関連付けられている全てのレプリカに対して syncdb detach --force を実行した上で、後述する <a href="#syncdb-img">syncdbの構成</a> で記述されている mlog.master テーブル上から、対象のマスタテーブル情報レコードを DELETE 文で削除してください。</li>
+<li>syncdb status を実行した際にレプリカテーブル名が空出力される場合は、関連付けが残った状態でレプリカテーブルが手動で削除された可能性があります。 この状態でリフレッシュを行ってもエラーとなりますので、後述する <a href="#syncdb-img">syncdbの構成</a> で記述されている observer.v$subscription ビューを実行し削除されたレプリカを特定した上で、observer.subscription テーブル上から対象のレプリカ情報レコードを DELETE 文で削除してください。</li>
+<li>マスタテーブル側の DBMS が Oracle で、syncdb create の実行途中にエラーが発生した場合、Oracle側で実行されたDDLが完全にロールバックされず、以降の syncdb の操作でエラーが発生し続ける場合があります。 このような場合は、syncdb のDBモジュールのアンインストール / インストールを行って、更新差分ログを再構築してください。</li>
+</ol>
+</ul>
+
+<h2 id="internal">内部構成</h2>
+<p>syncdb の内部構成について説明します。</p>
+
+<h3 id="build">ソースパッケージのビルド方法</h3>
+<p>ソースからビルド／インストールする場合は、<a href="http://ant.apache.org/">Apache Ant</a> と、Java開発環境(JDK)がインストールされている必要があります。 <a href="#requirement">動作環境</a> の記載条件と合致しているかを確認し、記載条件と異なる場合はインストールを行ってビルド環境を構築してください。</p>
+<p>例） ビルド環境の確認</p>
+<pre>$ ant -version
+Apache Ant version 1.8.1 compiled on April 30 2010
+$ javac -version
+javac 1.6.0-internal</pre>
+<p>本ツールのソースパッケージ syncdb_src.zip ファイルを任意のディレクトリに展開後、以下の手順でインストールします。</p>
+<pre>$cd /home/syncdb/syncdb_src
+$ unzip syncdb_src.zip</pre>
+<p>ソースパッケージ展開後は、以下の構成となります。</p>
+<pre>$ tree syncdb
+syncdb
+|-- bin
+|   `-- syncdb
+|-- build.properties
+|-- build.xml
+|-- checkstyle
+|   `-- (ソースコードチェック用設定ファイル)
+|-- conf
+|   `-- (テスト用設定ファイル)
+|-- data
+|   `-- (テスト用SQLファイル)
+|-- findbugs
+|   `-- (ソースコードチェック用設定ファイル)
+|-- lib
+|   `-- (外部ライブラリファイル)
+|-- samples
+|   |-- jdbcResource.xml
+|   `-- log4j.xml
+|-- sql
+|   |-- mlog_oracle.sql
+|   |-- mlog_postgresql.sql
+|   |-- observer_oracle.sql
+|   |-- observer_postgresql.sql
+|   |-- uninstall_mlog_oracle.sql
+|   |-- uninstall_mlog_postgresql.sql
+|   |-- uninstall_observer_oracle.sql
+|   `-- uninstall_observer_postgresql.sql
+|-- src
+|   `-- (ソースファイル)
+`-- testset
+    `-- (テスト用ソースファイル)</pre>
+<p>ant を実行し、syncdb をビルドします。</p>
+<pre>$ cd syncdb
+$ ant</pre>
+<p>バイナリパッケージを介さずに、ソースパッケージから直接インストールを行う場合は、build.properties ファイル中の install.prefix の指定先がインストール先となるので、環境に合わせて編集します。</p>
+<pre>$ vi build.properties
+install.prefix=/home/syncdb/syncdb</pre>
+<p>ant install を実行し、ビルド済みのファイルをインストールします。</p>
+<pre>$ ant install</pre>
+<p>インストール用のバイナリパッケージを作成する場合は ant package を実行します。 ant の実行後 package ディレクトリが作成され、配下にバイナリパッケージ syncdb.zip ファイルが作成されます。 バイナリパッケージを配布する場合は、このファイルを配布することになります。</p>
+<pre>$ ant package
+$ ls package/
+syncdb.zip</pre>
+
+<h3 id="syncdb-img">syncdbの構成</h3>
+<p>syncdb のモジュール構成を以下の図で示します。</p>
+<p>syncdb のDBモジュールは、マスタ側DBの更新差分ログ情報やマスタテーブルの関連付け情報を管理しマスタ側DB上で動作する mlog モジュールと、レプリカテーブルの関連付け情報を管理しレプリカ側DB上で動作する observer モジュールに分類されます。 Java AP の SyncDatabase は、これらDBモジュールを経由してDBにアクセスすることで、DBMSに依存しない実装となっています。 syncdb スクリプトは Java 実行環境を意識せずに SyncDatabase を実行させるためのラッパスクリプトとなります。</p>
+<img src="syncdb-img.png" width=75% height=75% />
+
+<p>以下に、マスタ側DBモジュールの一覧を示します。</p>
+<ul>
+<li>mlog.master<br>
+マスタ側のマスタテーブルを管理するテーブルです。</li>
+<li> mlog.subscriber<br>
+マスタ側で管理している、マスタテーブルとレプリカテーブルの関連付け情報です。 レプリカ1つに対して1レコードとなります。</li>
+<li>mlog.v$subscriber<br>
+マスタ側のマスタテーブル管理情報と関連付け情報を取得するためのビューです。</li>
+<li>mlog.create_mlog()<br>
+あるマスタテーブルについての更新差分ログの蓄積を開始します。</li>
+<li>mlog.subscribe()<br>
+あるレプリカテーブルを差分リフレッシュ先として管理情報に登録します。</li>
+<li>mlog.set_subscriber()<br>
+あるレプリカテーブルについての更新状態を登録します。</li>
+<li>mlog.purge()<br>
+あるマスタテーブルの更新差分ログについて、全てのレプリカテーブルが不要とする分のみを削除します。</li>
+<li>mlog.unsubscribe()<br>
+あるレプリカテーブルを差分リフレッシュ先のリストから削除します。</li>
+<li>mlog.drop_mlog()<br>
+あるマスタテーブルについて、差分ログの蓄積を停止します。</li>
+</ul>
+
+<p>以下に、レプリカ側DBモジュールの一覧を示します。</p>
+<ul>
+<li> observer.subscription<br>
+レプリカ側で管理している、マスタテーブルとレプリカテーブルの関連付け情報です。 レプリカ1つに対して1レコードとなります。</li>
+<li>observer.v$subscription<br>
+レプリカ側の関連付け情報を取得するためのビューです。</li>
+<li>observer.subscribe()<br>
+レプリカを作成するためのレプリカ側およびマスタ側の情報を、レプリカ側の管理情報に登録します。</li>
+<li>observer.unsubscribe()<br>
+レプリカ側の関連付け情報を解除します。</li>
+<li>observer.set_subscription()<br>
+レプリカ側の関連付け情報を更新します。</li>
+</ul>
+
+<h3 id="log-method">更新差分ログ方式</h3>
+<p>更新差分ログの内部構成について説明します。<br>
+
+<h4>更新差分ログの収集方法</h4>
+<p>更新差分ログの収集方法について説明します。<br>
+マスタテーブルの更新差分ログを構築した場合、マスタテーブルに紐付く「mlog.差分ログテーブル」と、マスタテーブルへの更新情報を「mlog.差分ログテーブル」に格納するための「更新差分ログ収集トリガ」が作成されます。 マスタテーブルに更新が発生した場合は、「更新差分ログ収集トリガ」経由で「mlog.差分ログテーブル」にプライマリキーと操作タイプ（DMLタイプ）を記録します。</p>
+<p>「mlog.差分ログテーブル」のサイズは、おおよそ以下の計算値となります。 これにインデックスが加わるので、追加でもう等量ほど必要となります。 この方式では、更新差分ログにプライマリキーと操作タイプのみを記録しているため、サイズ的にコンパクトで済むのが特徴です。</p>
+<pre>(マスタテーブルのプライマリキー + bigint + char(1) + DB 内部行ヘッダ) × 更新回数</pre>
+<p>以下に、更新差分ログの収集例を示します。</p>
+<img src="syncdb-make-mlog.png" width=75% height=75% />
+
+<h4>差分リフレッシュ処理</h4>
+<p>更新差分ログを利用した差分リフレッシュ処理について説明します。<br>
+マスタ側の関連付け情報として、「mlog.subscriber テーブル」にレプリカテーブル単位での管理情報が格納されています。 このテーブルには、対象レプリカテーブルが前回のリフレッシュ処理でどこまで更新差分ログを反映したかの「最終更新_mlogid」が保持されており、次回の差分リフレッシュの際は、「最終更新_mlogid」より後に収集された更新差分ログが反映の対象となります。 リフレッシュ処理では、DELETE、INSERT、UPDATE の順番でレプリカテーブルへの更新処理を実行します。 INSERT と UPDATE で使用する実データは、マスタテーブルからプライマリキー経由のスキャンで取得します。</p>
+<p>差分リフレッシュ時のマスタ側への性能影響としては、おおよそ以下のとおりです。</p>
+<pre>マスタテーブルの更新時：　更新のたびに INSERT +1回
+差分リフレッシュ時：　更新差分ログの行数分、マスタテーブルへプライマリキー経由でスキャン</pre>
+<p>以下に、差分リフレッシュの処理例を示します。</p>
+<img src="syncdb-mlog-refresh.png" width=75% height=75% />
+
+<h4>全体リフレッシュ処理</h4>
+<p>更新差分ログを利用しない全体リフレッシュ処理について説明します。<br>
+全体リフレッシュの場合は、レプリカテーブルを全件削除した後に、マスタテーブルから取得した実データをレプリカに対して INSERT します。</p>
+<p>以下に、全体リフレッシュの処理例を示します。</p>
+<img src="syncdb-full-refresh.png" width=75% height=75% />
+
+<h4>更新差分ログの削除方法</h4>
+<p>不要となった更新差分ログの削除方法について説明します。<br>
+一つのマスタテーブルに対して複数のレプリカテーブルが関連付けられている場合は、その中の最小の「最終更新_mlogid」を求めた上で、最小の「最終更新_mlogid」以下の更新差分ログのみを削除します。 この処理はリフレッシュ処理時に自動的に実行されます。</p>
+<p>以下に、更新差分ログの削除例を示します。</p>
+<img src="syncdb-del-mlog.png" width=75% height=75% />
+
+<h3 id="syncdb-jars">外部ライブラリ一覧</h3>
+<p> syncdb で使用するJavaの外部ライブラリについて以下に示します。 通常、PostgreSQL JDBC と Oracle JDBC 以外については、本ツールの利用ユーザ側で用意する必要はありません。</p>
+<table>
+<caption>外部ライブラリ一覧</caption>
+<thead>
+  <tr>
+    <th>名前</th>
+    <th>version</th>
+    <th>使用JARファイル名</th>
+    <th>ソースパッケージおよび<br>
+バイナリパッケージに同封</th>
+    <th>用途</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><a href="http://commons.apache.org/cli/">Commons CLI</a></td>
+    <td>1.2</td>
+    <td>commons-cli-1.2.jar</td>
+    <td align="center">含む</td>
+    <td>コマンドライン処理</td>
+  </tr>
+    <td><a href="http://logging.apache.org/log4j/">log4j</a></td>
+    <td>1.2.16</td>
+    <td>log4j-1.2.16.jar</td>
+    <td align="center">含む</td>
+    <td>ロガー</td>
+  <tr>
+    <td><a href="http://commons.apache.org/digester/">Commons Digester</a></td>
+    <td>2.0</td>
+    <td>commons-digester-2.0.jar</td>
+    <td align="center">含む</td>
+    <td>XML->JavaBeansマッピング</td>
+  </tr>
+  <tr>
+    <td><a href="http://commons.apache.org/beanutils/index.html">Commons BeanUtils</a></td>
+    <td>1.8.3</td>
+    <td>commons-beanutils-1.8.3.jar</td>
+    <td align="center">含む</td>
+    <td>JavaBeansユーティリティ</td>
+  </tr>
+  <tr>
+    <td><a href="http://commons.apache.org/logging/">Commons Logging</a></td>
+    <td>1.1.1</td>
+    <td>commons-logging-1.1.1.jar</td>
+    <td align="center">含む</td>
+    <td>ログAPIラッパ</td>
+  </tr>
+  <tr>
+    <td><a href="http://jotm.ow2.org/xwiki/bin/view/Main/">JTOM</a></td>
+    <td>2.1.9</td>
+    <td>jotm-client.jar<br>jotm-core.jar<br>xapool.jar</td>
+    <td align="center">含む</td>
+    <td>JTA実装ライブラリ</td>
+  </tr>
+  <tr>
+    <td><a href="http://junit.org/">Junit</a></td>
+    <td>4.8.1</td>
+    <td>junit-4.8.1.jar</td>
+    <td align="center">含む</td>
+    <td>Javaユニットテスト（開発者用）</td>
+  </tr>
+  <tr>
+    <td><a href="http://jdbc.postgresql.org/download.html">PostgreSQL JDBC</a></td>
+    <td>8.4 Build 701 JDBC4</td>
+    <td>postgresql-8.4-701.jdbc4.jar</td>
+    <td align="center">別途入手</td>
+    <td>PostgreSQL JDBC ドライバ</td>
+  </tr>
+  <tr>
+    <td><a href="http://www.oracle.com/technology/global/jp/software/tech/java/sqlj_jdbc/htdocs/jdbc_10201.html"> Oracle JDBC</a></td>
+    <td>10g R2 Thin JDBC3</td>
+    <td>ojdbc14.jar</td>
+    <td align="center">別途入手</td>
+    <td>Oracle JDBC ドライバ</td>
+  </tr>
+  <tr>
+    <td><a href="http://checkstyle.sourceforge.net/">CheckStyle</a></td>
+    <td>5.1</td>
+    <td>antlr.jar<br>checkstyle-5.1.jar<br>commons-beanutils-core.jar<br>commons-logging.jar<br>google-collect-1.0.jar</td>
+    <td align="center">別途入手</td>
+    <td>コーディング規約チェック（開発者用）</td>
+  </tr>
+  <tr>
+    <td><a href="http://findbugs.sourceforge.net/">FindBugs</a></td>
+    <td>1.3.9</td>
+    <td>asm-3.1.jar<br>asm-commons-3.1.jar<br>asm-tree-3.1.jar<br>bcel.jar<br>commons-lang-2.4.jar<br>dom4j-1.6.1.jar<br>findbugs-ant.jar<br>findbugs.jar<br>jaxen-1.1.1.jar<br>jFormatString.jar<br>jsr305.jar</td>
+    <td align="center">別途入手</td>
+    <td>潜在バグやパフォーマンス問題のチェック（開発者用）</td>
+  </tr>
+</tbody>
+</table>
+
+<h2 id="requirement">動作環境</h2>
+<dl>
+<dt>PostgreSQL</dt>
+<dd>PostgreSQL 8.4.4</dd>
+<dd>JDBC: postgresql-8.4-701.jdbc4.jar</dd>
+<dt>Oracle</dt>
+<dd>Oracle Database 10g R2</dd>
+<dd>JDBC: ojdbc14.jar</dd>
+<dt>OS</dt>
+<dd>CentOS 5.4</dd>
+<dt>Java VM</dt>
+<dd>OpenJDK 1.6</dd>
+<dd>Sun Java SE 6 JRE</dd>
+<dt>JDK (ソースからビルド／インストールする場合に必要となります)</dt>
+<dd>OpenJDK devel 1.6</dd>
+<dd>Sun Java SE 6 JDK</dd>
+<dt>Ant (ソースからビルド／インストールする場合に必要となります)</dt>
+<dd><a href="http://ant.apache.org/">Apache Ant</a> 1.8.1</dd>
+</dl>
+
+<hr />
+<div class="navigation">
+  <a href="index-ja.html">Top</a> &gt;
+  <a href="syncdb-ja.html">syncdb</a>
+<div>
+<p class="footer">Copyright (c) 2008-2010, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-10244036-4");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>
