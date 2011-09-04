@@ -591,17 +591,20 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 	oralink_cursor *cur;
 	sword			status;
 	int				i;
-	char			str[NAMEDATALEN];
-	char			sql[NAMEDATALEN + 64];
+	char		   *str;
+	char		   *sql;
 	char			*p;
 	OCIBind			*bnd1p;
 
-	strcpy(str, func);
+	str = strdup(func);
 	if ((p = strrchr(str, '(')))
 		*p++ = 0;
 	else
 		return false;
+	/* sql needs extra length (here rounded to 64) for fixed content */
+	sql = calloc(strlen(str) + strlen(p) + 64, 1);
 	snprintf(sql, lengthof(sql), "BEGIN %s(:cursor, %s; END;", str, p);
+	free(str);
 
 	cur = oralink_cursor_new();
 	cur->conn = conn;
@@ -609,6 +612,7 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 	cur->fetchsize = (fetchsize > 0) ? fetchsize : 1;
 	cur->rowcount = 0;
 	cur->current = 0;
+	free(sql);
 
 	if (max_value_len < 0)
 		cur->max_value_len = conn->max_value_len;
