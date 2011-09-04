@@ -603,7 +603,8 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 		return false;
 	/* sql needs extra length (here rounded to 64) for fixed content */
 	sql = calloc(strlen(str) + strlen(p) + 64, 1);
-	snprintf(sql, lengthof(sql), "BEGIN %s(:cursor, %s; END;", str, p);
+	snprintf(sql, strlen(str) + strlen(p) + 64, "BEGIN %s(:cursor, %s; END;",
+			 str, p);
 	free(str);
 
 	cur = oralink_cursor_new();

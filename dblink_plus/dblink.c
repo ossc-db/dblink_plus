@@ -533,8 +533,6 @@ searchLink(const text *name, HASHACTION action, bool *found)
 {
 	char	   *short_name;
 	NameData	key;
-	const char *str = VARDATA_ANY(name);
-	int			len = VARSIZE_ANY_EXHDR(name);
 
 	/*
 	 * Truncate name if it's too long for identifier.  If this is a call for
@@ -543,7 +541,7 @@ searchLink(const text *name, HASHACTION action, bool *found)
 	short_name = text_to_cstring(name);
 	truncate_identifier(short_name, strlen(short_name), action == HASH_ENTER);
 	MemSet(key.data, 0, NAMEDATALEN);
-	strncpy(key.data, str, len);
+	strncpy(key.data, short_name, strlen(short_name));
 
 	return searchLinkByName(&key, action, found);
 }
