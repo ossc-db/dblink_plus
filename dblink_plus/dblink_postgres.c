@@ -171,8 +171,8 @@ pglink_exec(pglink_connection *conn, const char *sql)
 			PQclear(res);
 			break;
 		default:
-		pglink_error(conn->conn, res);
-		return 0;	/* keep compiler quiet */
+			pglink_error(conn->conn, res);
+			return 0;	/* keep compiler quiet */
 	}
 
 	return ntuples;
