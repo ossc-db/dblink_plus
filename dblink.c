@@ -14,6 +14,7 @@
 #include "foreign/foreign.h"
 #include "funcapi.h"
 #include "miscadmin.h"
+#include "parser/scansup.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
@@ -530,13 +531,17 @@ dblink_atcommit(PG_FUNCTION_ARGS)
 static Conn *
 searchLink(const text *name, HASHACTION action, bool *found)
 {
+	char	   *short_name;
 	NameData	key;
 	const char *str = VARDATA_ANY(name);
 	int			len = VARSIZE_ANY_EXHDR(name);
 
-	if (len >= NAMEDATALEN)
-		elog(ERROR, "connection name too long");
-
+	/*
+	 * Truncate name if it's too long for identifier.  If this is a call for
+	 * a new connection, warn user that the new connection has truncated name.
+	 */
+	short_name = text_to_cstring(name);
+	truncate_identifier(short_name, strlen(short_name), action == HASH_ENTER);
 	MemSet(key.data, 0, NAMEDATALEN);
 	strncpy(key.data, str, len);
 
@@ -567,13 +572,22 @@ searchLinkByName(const NameData *name, HASHACTION action, bool *found)
 static Conn *
 doConnect(const text *name, const text *servername, bool *isNew)
 {
+	char			   *short_name;
 	Conn			   *conn;
 	bool				found;
 	ForeignServer	   *server;
 	ForeignDataWrapper *fdw;
 	List			   *params;
 
-	server = getServerByName(text_to_cstring(servername));
+	/*
+	 * Truncate server name if it's too long for identifier because catalog
+	 * lookup functions assumes that the given name is shorter than
+	 * NAMEDATALEN.  We don't warn users about this truncation, to make the
+	 * behavior to be identical to contrib/dblink.
+	 */
+	short_name = text_to_cstring(servername);
+	truncate_identifier(short_name, strlen(short_name), false);
+	server = getServerByName(short_name);
 	fdw = GetForeignDataWrapper(server->fdwid);
 
 	if (fdw->fdwvalidator == InvalidOid)
