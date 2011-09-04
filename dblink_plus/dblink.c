@@ -730,13 +730,10 @@ AtEOXact_dblink(XactEvent event, void *arg)
 {
 	HASH_SEQ_STATUS seq;
 	Conn		   *conn;
-	TimestampTz		now;
 
 	closeCursors();
 	if (connections == NULL || hash_get_num_entries(connections) < 1)
 		return;
-
-	now = GetCurrentTimestamp();
 
 	hash_seq_init(&seq, connections);
 	while ((conn = (Conn *) hash_seq_search(&seq)) != NULL)
