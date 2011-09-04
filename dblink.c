@@ -823,7 +823,7 @@ dblink_error(int sqlstate,
 
 void dblink_elog(int level, const char *message)
 {
-	elog(level, message);
+	elog(level, "%s", message);
 }
 
 void
