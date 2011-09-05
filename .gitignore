@@ -2,3 +2,7 @@ dblink*.o
 dblink_plus.sql
 dblink_plus*.so
 tags
+regression.out
+regression.diffs
+results
+results/*
