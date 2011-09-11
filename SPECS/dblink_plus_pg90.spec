@@ -9,7 +9,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0
+Version:    1.0.0
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
