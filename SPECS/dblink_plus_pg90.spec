@@ -17,6 +17,9 @@ Source0:    %{name}-%{version}.tar.gz
 URL:        http://interdbconnect.sourceforge.net/dblink_plus/dblink_plus-ja.html
 BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-%(%{__id_u} -n)
 Vendor:     NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+#Following is needed to remove auto-discovery of oci library files(not under RPM package management)
+AutoReqProv: no
+
 
 ## We use postgresql-devel package
 BuildRequires:  postgresql90-devel
@@ -45,6 +48,7 @@ install -d %{buildroot}%{_datadir}
 install -m 755 dblink_plus.sql %{buildroot}%{_datadir}/dblink_plus.sql
 install -m 755 uninstall_dblink_plus.sql %{buildroot}%{_datadir}/uninstall_dblink_plus.sql
 install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
+
 
 %clean
 rm -rf %{buildroot}
