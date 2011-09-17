@@ -62,5 +62,5 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
-* Wed Nov 10  2011 - NTT OSS Center <sakamoto.masahiko@oss.ntt.co.jp> 0.1
+* Wed Nov 10  2011 - NTT OSS Center <sakamoto.masahiko@oss.ntt.co.jp> 1.0.0
 initial packaging
