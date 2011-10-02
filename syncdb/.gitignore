@@ -2,3 +2,4 @@ classes/*
 jar/*
 *.class
 *.jar
+package
