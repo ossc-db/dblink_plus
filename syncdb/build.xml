@@ -14,7 +14,7 @@
 	<property name="test.dest" location="${basedir}/testbin" />
 	<property name="test.reports" location="${basedir}/reports" />
 	<property name="package.dest" location="${basedir}/package" />
-	<property name="package.file" value="${packagenames}.zip" />
+	<property name="package.file" value="${packagenames}-${package.version}.zip" />
 	<property name="lib" value="lib" />
 	<property name="bin" value="bin" />
 	<property name="sql" value="sql" />
@@ -96,11 +96,12 @@
 		<mkdir dir="${package.dest}" />
 
 		<zip destfile="${package.dest}/${package.file}">
-			<zipfileset prefix="${packagenames}/${samples}" dir="${samples}" includes="*.xml" filemode="644" />
-			<zipfileset prefix="${packagenames}/${lib}" dir="${lib}" includes="*.jar" filemode="644" />
-			<zipfileset prefix="${packagenames}/${lib}" file="${jar.dest}/${jar.file}" filemode="644" />
-			<zipfileset prefix="${packagenames}/${sql}" dir="${sql}" includes="*.sql" filemode="644" />
-			<zipfileset prefix="${packagenames}/${bin}" dir="${bin}" includes="syncdb" filemode="755" />
+			<zipfileset prefix="${packagenames}-${package.version}" file="COPYRIGHT" filemode="644" />
+			<zipfileset prefix="${packagenames}-${package.version}/${samples}" dir="${samples}" includes="*.xml" filemode="644" />
+			<zipfileset prefix="${packagenames}-${package.version}/${lib}" dir="${lib}" includes="*.jar" filemode="644" />
+			<zipfileset prefix="${packagenames}-${package.version}/${lib}" file="${jar.dest}/${jar.file}" filemode="644" />
+			<zipfileset prefix="${packagenames}-${package.version}/${sql}" dir="${sql}" includes="*.sql" filemode="644" />
+			<zipfileset prefix="${packagenames}-${package.version}/${bin}" dir="${bin}" includes="syncdb" filemode="755" />
 		</zip>
 	</target>
 
