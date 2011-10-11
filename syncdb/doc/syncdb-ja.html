@@ -738,6 +738,7 @@ input query : SELECT * FROM "Schema"."Table"&lt;改行&gt;を入力
 <li>syncdb が要求する外部ライブラリ（JDBCドライバも含む）と異なるバージョンの同ライブラリが、Javaの拡張ディレクトリ (Javaインストール先)/jre/lib/ext/ に存在しないことを確認してください。 異なるバージョンの同ライブラリが存在する場合は、syncdb インストール先の lib/ ディレクトリより先に (Javaインストール先)/jre/lib/ext/ ディレクトリが参照されますので、動作については保証されません。 syncdb で使用する外部ライブラリについては <a href="#syncdb-jars">外部ライブラリ一覧</a> と <a href="#requirement">動作環境</a> を参照してください。</li>
 <li>syncdb はマスタ側DBに対して2本のセッションを必要とします。 レプリカ側DBに対しては1本のセッションが必要です。 マスタとレプリカが同一DBの場合は最大3本のセッションを必要とします。</li>
 <li>syncdb は実行中に &lt;ctrl+c&gt; キーによる割り込みを行って処理を中断できますが、 syncdb を cron で実行している場合など、別のターミナル上から中断させたい場合は、syncdb スクリプトから実行される javaプロセスに対して直接 SIGTERM シグナルを送ってください。</li>
+<li>リフレッシュ処理実行後、「ERROR - refresh error, see server logs for details」のメッセージが出力された場合は、各DBのサーバログを確認してください。</li>
 </ul>
 
 <h3 id="on-abort">異常時の対処</h3>

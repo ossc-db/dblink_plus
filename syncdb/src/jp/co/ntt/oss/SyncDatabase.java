@@ -9,9 +9,12 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
+import java.sql.SQLException;
+import jp.co.ntt.oss.utility.PropertyCtrl;
 
 public class SyncDatabase {
 	private static Logger log = Logger.getLogger(SyncDatabase.class);
+	private static PropertyCtrl mProperty = PropertyCtrl.getInstance();
 
 	/**
 	 * execute SyncDatabase.
@@ -23,6 +26,9 @@ public class SyncDatabase {
 
 			// execute command
 			command.execute();
+		} catch (SQLException e) {
+			log.debug(mProperty.getMessage("error.refresh"));
+			log.error(mProperty.getMessage("error.refresh"));
 		} catch (final Exception e) {
 			String stackTrace = null;
 			try {
