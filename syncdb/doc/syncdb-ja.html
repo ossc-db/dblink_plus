@@ -128,31 +128,44 @@ syncdb -- あるテーブルのデータ変更を、他のテーブルへ伝播�
 <caption>ユーザと権限</caption>
 <thead>
   <tr>
-    <th width=20%>ユーザ</th>
     <th width=40%>操作</th>
+    <th width=20%>ユーザ</th>
     <th width=40%>権限</th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td>syncdb 管理者</td>
-    <td>・syncdb パッケージのインストール<br>・syncdb パッケージのアンインストール</td>
-    <td>マスタ側サーバおよびレプリカ側サーバに対して「データベース管理者(スーパユーザ)」権限が必要。</td>
+    <td>・syncdb パッケージのインストール</td>
+    <td rowspan=2>syncdb 管理者</td>
+    <td rowspan=2>マスタ側サーバおよびレプリカ側サーバに対して「データベース管理者(スーパユーザ)」権限が必要。</td>
   </tr>
   <tr>
-    <td>マスタテーブル所有者相当</td>
-    <td>・マスタテーブルの更新差分ログ構築<br>・マスタテーブルの更新差分ログ削除<br>(syncdb create/drop)</td>
-    <td>マスタテーブルに対して「SELECT」,「TRIGGER」権限が必要。 ※1</td>
+    <td>・syncdb パッケージのアンインストール</td>
   </tr>
   <tr>
-    <td>syncdb 利用者</td>
-    <td>・レプリカテーブルとマスタテーブルの関連付け<br>・レプリカテーブルの最新化(リフレッシュ)<br>・マスタテーブルとの関連付け解除<br>(syncdb attach/refresh/detach)</td>
-    <td>マスタテーブルに対して「SELECT」権限が必要。<br>レプリカテーブルに対して「SELECT」,「INSERT」,「UPDATE」,「DELETE」,「TRUNCATE」権限が必要。 ※2</td>
+    <td>・マスタテーブルの更新差分ログ構築(syncdb create)</td>
+    <td rowspan=2>マスタテーブル所有者相当</td>
+    <td>マスタテーブルに対して「SELECT」,「TRIGGER」権限が必要。</td>
+  </tr>
+  <tr>
+    <td>・マスタテーブルの更新差分ログ削除(syncdb drop)</td>
+    <td>マスタテーブルの更新差分ログ構築(syncdb create)を実行したユーザ</td>
+  </tr>
+  <tr>
+    <td>・レプリカテーブルとマスタテーブルの関連付け(syncdb attach)</tb>
+    <td rowspan=3>syncdb 利用者</td>
+    <td rowspan=2>マスタテーブルに対して「SELECT」権限が必要。※1<br>レプリカテーブルに対して「SELECT」,「INSERT」,「UPDATE」,「DELETE」,「TRUNCATE」権限が必要。</td>
+  </tr>
+  <tr>
+    <td>・レプリカテーブルの最新化(リフレッシュ)(syncdb refresh)</tb>
+  </tr>
+  <tr>
+    <td>・マスタテーブルとの関連付け解除(syncdb detach)</td>
+    <td>レプリカテーブルとマスタテーブルの関連付け(syncdb attach)を実行したユーザ</td>
   </tr>
 </tbody>
 </table>
-<p>※1： 差分更新ログの削除は、差分更新ログを構築したユーザのみが可能となります。<br>
-※2： 関連付けの解除は、関連付けを行ったユーザのみが可能となります。</p>
+<p>※ 1 マスタテーブルに対してSHAREモードでロックを取得するため、PostgreSQL の仕様により、「SELECT」権限とは別に「UPDATE」,「DELETE」,「TRUNCATE」権限のいずれかが必要になります。</p>
 
 <h2 id="introduction">導入方法</h2>
 <p>syncdb の基本的な導入方法について説明します。</p>
