@@ -10,6 +10,7 @@
 #include "lib/stringinfo.h"
 #include "nodes/parsenodes.h"
 #include "libpq-fe.h"
+#include "utils/memutils.h"
 
 extern Datum postgresql_fdw_validator(PG_FUNCTION_ARGS);
 
@@ -21,11 +22,19 @@ typedef struct pglink_connection
 	PGconn			   *conn;
 } pglink_connection;
 
+typedef struct pglink_value
+{
+	char	**fields;
+} pglink_value;
+
 /* PQresult wrapper cursor */
 typedef struct pglink_cursor
 {
 	dblink_cursor	base;
-	PGresult	   *res;
+
+	pglink_value   *values;
+	int				ntuples;
+
 	int				row;
 } pglink_cursor;
 
@@ -57,6 +66,8 @@ static bool pglink_fetch_srvcur(pglink_srvcur *cur, const char *values[]);
 static void pglink_close_srvcur(pglink_srvcur *cur);
 
 static void pglink_error(PGconn *conn, PGresult *res);
+static void pglink_makevalue(pglink_cursor *cur, PGresult *res);
+static void pglink_freevalue(pglink_cursor *cur);
 
 /*
  * Escaping libpq connect parameter strings.
@@ -185,8 +196,7 @@ fetch_forward(pglink_srvcur *cur)
 	PGresult	   *res;
 	ExecStatusType	code;
 
-	PQclear(cur->base.res);
-	cur->base.res = NULL;
+	pglink_freevalue(&cur->base);
 
 	if (!cur->name[0])
 		return false;	/* already done */
@@ -207,7 +217,10 @@ fetch_forward(pglink_srvcur *cur)
 		return false;
 	}
 
-	cur->base.res = res;
+	cur->base.base.nfields = PQnfields(res);
+	cur->base.ntuples = PQntuples(res);
+	pglink_makevalue(&cur->base, res);
+	PQclear(res);
 	cur->base.row = 0;
 	return true;
 }
@@ -246,7 +259,6 @@ pglink_open(pglink_connection *conn, const char *sql, int32 fetchsize, int32 max
 				pglink_close_srvcur(cur);
 				return NULL;
 			}
-			cur->base.base.nfields = PQnfields(cur->base.res);
 
 			return (pglink_cursor *) cur;
 		}
@@ -262,13 +274,57 @@ pglink_open(pglink_connection *conn, const char *sql, int32 fetchsize, int32 max
 
 			cur = pglink_cursor_new();
 			cur->base.nfields = PQnfields(res);
-			cur->res = res;
+			cur->ntuples = PQntuples(res);
+			pglink_makevalue(cur, res);
+			PQclear(res);
 			return cur;
 		}
 	}
 
 	pglink_error(conn->conn, res);
 	return NULL;	/* keep compiler quiet */
+}
+
+static void pglink_makevalue(pglink_cursor *cur, PGresult *res)
+{
+	MemoryContext old_context;
+	int		i;
+	int		n;
+
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+
+	cur->values = palloc(sizeof(pglink_value) * cur->ntuples);
+	for (i = 0; i < cur->ntuples; i++)
+	{
+		cur->values[i].fields = palloc(sizeof(char*) * cur->base.nfields);
+		for (n = 0; n < cur->base.nfields; n++)
+		{
+			if (PQgetisnull(res, i, n))
+				cur->values[i].fields[n] = 0;
+			else
+				cur->values[i].fields[n] = pstrdup(PQgetvalue(res, i, n));
+		}
+	}
+	MemoryContextSwitchTo(old_context);
+}
+
+static void pglink_freevalue(pglink_cursor *cur)
+{
+	int		i, n;
+
+	if (!cur->values)
+		return;
+
+	for (i = 0; i < cur->ntuples; i++)
+	{
+		for (n = 0; n < cur->base.nfields; n++)
+			pfree(cur->values[i].fields[n]);
+
+		pfree(cur->values[i].fields);
+	}
+	pfree(cur->values);
+	cur->values = 0;
+	return;
 }
 
 static pglink_cursor *
@@ -329,14 +385,18 @@ pglink_command(pglink_connection *conn, dblink_command type)
 static pglink_cursor *
 pglink_cursor_new(void)
 {
+	MemoryContext	old_context;
 	pglink_cursor  *p;
 
-	p = malloc(sizeof(pglink_cursor));
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = palloc(sizeof(pglink_cursor));
 	p->base.fetch = (dblink_fetch_t) pglink_fetch;
 	p->base.close = (dblink_close_t) pglink_close;
 	p->base.nfields = 0;
 	p->row = 0;
-	p->res = NULL;
+	p->values = NULL;
+	p->ntuples = 0;
+	MemoryContextSwitchTo(old_context);
 
 	return p;
 }
@@ -346,15 +406,12 @@ pglink_fetch(pglink_cursor *cur, const char *values[])
 {
 	int		c;
 
-	if (cur->row >= PQntuples(cur->res))
+	if (cur->row >= cur->ntuples)
 		return false;
 
 	for (c = 0; c < cur->base.nfields; c++)
 	{
-		if (PQgetisnull(cur->res, cur->row, c))
-			values[c] = NULL;
-		else
-			values[c] = PQgetvalue(cur->res, cur->row, c);
+		values[c] = cur->values[cur->row].fields[c];
 	}
 	cur->row++;
 	return true;
@@ -363,23 +420,27 @@ pglink_fetch(pglink_cursor *cur, const char *values[])
 static void
 pglink_close(pglink_cursor *cur)
 {
-	PQclear(cur->res);
-	free(cur);
+	pglink_freevalue(cur);
+	pfree(cur);
 }
 
 static pglink_srvcur *
 pglink_srvcur_new(void)
 {
+	MemoryContext	old_context;
 	pglink_srvcur  *p;
 
-	p = malloc(sizeof(pglink_srvcur));
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = palloc(sizeof(pglink_srvcur));
 	p->base.base.fetch = (dblink_fetch_t) pglink_fetch_srvcur;
 	p->base.base.close = (dblink_close_t) pglink_close_srvcur;
 	p->base.base.nfields = 0;
 	p->base.row = 0;
-	p->base.res = NULL;
+	p->base.values = NULL;
+	p->base.ntuples = 0;
 	p->conn = NULL;
 	p->name[0] = '\0';
+	MemoryContextSwitchTo(old_context);
 
 	return p;
 }
@@ -387,12 +448,10 @@ pglink_srvcur_new(void)
 static bool
 pglink_fetch_srvcur(pglink_srvcur *cur, const char *values[])
 {
-	if (cur->base.res == NULL || cur->base.row >= PQntuples(cur->base.res))
+	if (cur->base.values == NULL || cur->base.row >= cur->base.ntuples)
 	{
 		if (!fetch_forward(cur))
 			return false;
-		else if (cur->base.base.nfields != PQnfields(cur->base.res))
-			elog(ERROR, "nfields should not be changed");
 	}
 
 	return pglink_fetch(&cur->base, values);
@@ -401,7 +460,7 @@ pglink_fetch_srvcur(pglink_srvcur *cur, const char *values[])
 static void
 pglink_close_srvcur(pglink_srvcur *cur)
 {
-	PQclear(cur->base.res);
+	pglink_freevalue(&cur->base);
 	if (cur->name[0] && cur->conn)
 	{
 		char	sql[NAMEDATALEN + 64];
@@ -409,7 +468,7 @@ pglink_close_srvcur(pglink_srvcur *cur)
 		snprintf(sql, lengthof(sql), "CLOSE %s", cur->name);
 		PQclear(PQexec(cur->conn, sql));
 	}
-	free(cur);
+	pfree(cur);
 }
 
 static void
@@ -421,9 +480,6 @@ pglink_error(PGconn *conn, PGresult *res)
 	const char *hint = PQresultErrorField(res, PG_DIAG_MESSAGE_HINT);
 	const char *context = PQresultErrorField(res, PG_DIAG_CONTEXT);
 	int			sqlstate;
-
-	if (res)
-		PQclear(res);
 
 	if (diag_sqlstate)
 		sqlstate = MAKE_SQLSTATE(diag_sqlstate[0],
@@ -438,6 +494,9 @@ pglink_error(PGconn *conn, PGresult *res)
 	detail = detail ? pstrdup(detail) : NULL;
 	hint = hint ? pstrdup(hint) : NULL;
 	context = context ? pstrdup(context) : NULL;
+
+	if (res)
+		PQclear(res);
 
 	ereport(ERROR, (errcode(sqlstate),
 		message ? errmsg("%s", message) : errmsg("unknown error"),

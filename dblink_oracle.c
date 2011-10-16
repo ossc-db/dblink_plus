@@ -9,6 +9,9 @@
 #include "c.h"
 #undef text
 
+#include "postgres.h"
+#include "utils/memutils.h"
+
 #include "utils/elog.h"
 #include "mb/pg_wchar.h"
 #include "dblink.h"
@@ -67,6 +70,10 @@ static void oralink_lobread(oralink_cursor *cur, int field);
 static void oralink_error(OCIError *errhp, sword status);
 static void oralink_elog(OCIError *errhp, sword status);
 static void oralink_message(char *message, int size, OCIError *errhp, sword status);
+static void *oralink_malloc(size_t size);
+static void *oralink_calloc(size_t nmemb, size_t size);
+static void *oralink_realloc(void *ptr, size_t size);
+static void oralink_free(void *ptr);
 
 static oralink_connection *
 oralink_connection_new(void)
@@ -88,7 +95,7 @@ oralink_cursor_new(void)
 {
 	oralink_cursor  *p;
 
-	p = calloc(sizeof(oralink_cursor), 1);
+	p = oralink_calloc(sizeof(oralink_cursor), 1);
 	p->base.fetch = (dblink_fetch_t) oralink_fetch;
 	p->base.close = (dblink_close_t) oralink_close;
 	p->base.nfields = 0;
@@ -348,12 +355,12 @@ oralink_open(oralink_connection *conn, const char *sql, int fetchsize, int max_v
 		oralink_elog(conn->error, status);
 
 	/* Declare define handle */
-	cur->defnhp = calloc(cur->base.nfields * sizeof(OCIDefine *), 1);
-	cur->values = calloc(cur->base.nfields * sizeof(char *), 1);
-	cur->indicator = calloc(cur->base.nfields * sizeof(sb2 *), 1);
-	cur->allocsize = calloc(cur->base.nfields * sizeof(ub4), 1);
-	cur->data_type = calloc(cur->base.nfields * sizeof(sb4), 1);
-	cur->lob_loc = calloc(cur->base.nfields * sizeof(OCILobLocator *), 1);
+	cur->defnhp = oralink_calloc(cur->base.nfields * sizeof(OCIDefine *), 1);
+	cur->values = oralink_calloc(cur->base.nfields * sizeof(char *), 1);
+	cur->indicator = oralink_calloc(cur->base.nfields * sizeof(sb2 *), 1);
+	cur->allocsize = oralink_calloc(cur->base.nfields * sizeof(ub4), 1);
+	cur->data_type = oralink_calloc(cur->base.nfields * sizeof(sb4), 1);
+	cur->lob_loc = oralink_calloc(cur->base.nfields * sizeof(OCILobLocator *), 1);
 
 	for (i = 0;  i < cur->base.nfields; i++)
 	{
@@ -393,8 +400,8 @@ oralink_open(oralink_connection *conn, const char *sql, int fetchsize, int max_v
 		else
 			cur->allocsize[i] = cur->max_value_len + 1;
 
-		cur->values[i] = calloc(cur->allocsize[i] * cur->fetchsize, 1);
-		cur->indicator[i] = calloc(sizeof(sb2) * cur->fetchsize, 1);
+		cur->values[i] = oralink_malloc(cur->allocsize[i] * cur->fetchsize);
+		cur->indicator[i] = oralink_calloc(sizeof(sb2) * cur->fetchsize, 1);
 
 		status = OCIDefineByPos(cur->stmt,
 					&cur->defnhp[i],
@@ -484,7 +491,7 @@ oralink_fetch(oralink_cursor *cur, const char *values[])
 				continue;
 
 			realloc_count++;
-			cur->values[i] = realloc(cur->values[i],
+			cur->values[i] = oralink_realloc(cur->values[i],
 								cur->allocsize[i] * cur->fetchsize);
 			cur->status = OCIDefineByPos(cur->stmt,
 						&cur->defnhp[i],
@@ -552,37 +559,37 @@ oralink_close(oralink_cursor *cur)
 			if (cur->lob_loc[i])
 				OCIDescriptorFree(cur->lob_loc[i], OCI_DTYPE_LOB);
 		}
-		free(cur->lob_loc);
+		oralink_free(cur->lob_loc);
 	}
 	if (cur->stmt)
 		OCIHandleFree(cur->stmt, OCI_HTYPE_STMT);
 	if (cur->org_stmt)
 		OCIHandleFree(cur->org_stmt, OCI_HTYPE_STMT);
 	if (cur->defnhp)
-		free(cur->defnhp);
+		oralink_free(cur->defnhp);
 	if (cur->values)
 	{
 		for (i = 0; i < cur->base.nfields; i++)
 		{
 			if (cur->values[i])
-				free(cur->values[i]);
+				oralink_free(cur->values[i]);
 		}
-		free(cur->values);
+		oralink_free(cur->values);
 	}
 	if (cur->indicator)
 	{
 		for (i = 0; i < cur->base.nfields; i++)
 		{
 			if (cur->indicator[i])
-				free(cur->indicator[i]);
+				oralink_free(cur->indicator[i]);
 		}
-		free(cur->indicator);
+		oralink_free(cur->indicator);
 	}
 	if (cur->allocsize)
-		free(cur->allocsize);
+		oralink_free(cur->allocsize);
 	if (cur->data_type)
-		free(cur->data_type);
-	free(cur);
+		oralink_free(cur->data_type);
+	oralink_free(cur);
 }
 
 static oralink_cursor *
@@ -649,12 +656,12 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 		oralink_error(conn->error, status);
 	}
 
-	cur->defnhp = calloc(cur->base.nfields * sizeof(OCIDefine *), 1);
-	cur->values = calloc(cur->base.nfields * sizeof(char *), 1);
-	cur->indicator = calloc(cur->base.nfields * sizeof(sb2 *), 1);
-	cur->allocsize = calloc(cur->base.nfields * sizeof(ub4), 1);
-	cur->data_type = calloc(cur->base.nfields * sizeof(sb4), 1);
-	cur->lob_loc = calloc(cur->base.nfields * sizeof(OCILobLocator *), 1);
+	cur->defnhp = oralink_calloc(cur->base.nfields * sizeof(OCIDefine *), 1);
+	cur->values = oralink_calloc(cur->base.nfields * sizeof(char *), 1);
+	cur->indicator = oralink_calloc(cur->base.nfields * sizeof(sb2 *), 1);
+	cur->allocsize = oralink_calloc(cur->base.nfields * sizeof(ub4), 1);
+	cur->data_type = oralink_calloc(cur->base.nfields * sizeof(sb4), 1);
+	cur->lob_loc = oralink_calloc(cur->base.nfields * sizeof(OCILobLocator *), 1);
 
 	for (i = 0;  i < cur->base.nfields; i++)
 	{
@@ -663,8 +670,8 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 		else
 			cur->allocsize[i] = cur->max_value_len + 1;
 
-		cur->values[i] = calloc(cur->allocsize[i] * cur->fetchsize, 1);
-		cur->indicator[i] = calloc(sizeof(sb2) * cur->fetchsize, 1);
+		cur->values[i] = oralink_malloc(cur->allocsize[i] * cur->fetchsize);
+		cur->indicator[i] = oralink_calloc(sizeof(sb2) * cur->fetchsize, 1);
 		cur->data_type[i] = SQLT_STR;
 
 		status = OCIDefineByPos(cur->stmt,
@@ -776,7 +783,7 @@ oralink_lobread(oralink_cursor *cur, int field)
 	if (cur->allocsize[field] < LOB_ALLOC_SIZE)
 	{
 		cur->allocsize[field] = LOB_ALLOC_SIZE;
-		cur->values[field] = realloc(cur->values[field], cur->allocsize[field]);
+		cur->values[field] = oralink_realloc(cur->values[field], cur->allocsize[field]);
 	}
 
 	while (1)
@@ -801,7 +808,7 @@ oralink_lobread(oralink_cursor *cur, int field)
 				"LOB data buffer overflowed.", NULL, NULL, NULL);
 		}
 		cur->allocsize[field] += LOB_ALLOC_SIZE;
-		ptr = realloc(cur->values[field], cur->allocsize[field]);
+		ptr = oralink_realloc(cur->values[field], cur->allocsize[field]);
 		if (ptr == NULL)
 		{
 			OCIBreak(conn->svcctx, conn->error);
@@ -850,13 +857,13 @@ oralink_message(char *message, int size, OCIError *errhp, sword status)
 			break;
 		case OCI_ERROR:
 			OCIErrorGet ((void  *) errhp, (ub4) 1, (text *) NULL, &oracode,
-				errbuf, (ub4) sizeof(errbuf), (ub4) OCI_HTYPE_ERROR);
-			snprintf(message, size, "OCI_ERROR - %s", errbuf);
+				errbuf, (ub4) sizeof(errbuf) - 1, (ub4) OCI_HTYPE_ERROR);
+			snprintf(message, size - 1, "OCI_ERROR - %s", errbuf);
 			break;
 		case OCI_SUCCESS_WITH_INFO:
 			OCIErrorGet ((void  *) errhp, (ub4) 1, (text *) NULL, &oracode,
-				errbuf, (ub4) sizeof(errbuf), (ub4) OCI_HTYPE_ERROR);
-			snprintf(message, size, "OCI_SUCCESS_WITH_INFO - %s", errbuf);
+				errbuf, (ub4) sizeof(errbuf) - 1, (ub4) OCI_HTYPE_ERROR);
+			snprintf(message, size - 1, "OCI_SUCCESS_WITH_INFO - %s", errbuf);
 			break;
 		case OCI_INVALID_HANDLE:
 			strlcpy(message, "OCI_INVALID_HANDLE", size);
@@ -868,9 +875,47 @@ oralink_message(char *message, int size, OCIError *errhp, sword status)
 			strlcpy(message, "OCI_CONTINUE", size);
 			break;
 		default:
-			snprintf(message, size, "OCI: %d", status);
+			snprintf(message, size - 1, "OCI: %d", status);
 			break;
 	}
+}
+
+static void *oralink_malloc(size_t size)
+{
+	MemoryContext old_context;
+	void	*p;
+
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = palloc(size);
+	MemoryContextSwitchTo(old_context);
+	return p;
+}
+
+static void *oralink_calloc(size_t nmemb, size_t size)
+{
+	MemoryContext old_context;
+	void	*p;
+
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = palloc0(nmemb * size);
+	MemoryContextSwitchTo(old_context);
+	return p;
+}
+
+static void *oralink_realloc(void *ptr, size_t size)
+{
+	MemoryContext old_context;
+	void	*p;
+
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = repalloc(ptr, size);
+	MemoryContextSwitchTo(old_context);
+	return p;
+}
+
+static void oralink_free(void *ptr)
+{
+	return pfree(ptr);
 }
 
 #endif

@@ -6,6 +6,7 @@
 #ifdef ENABLE_SQLITE3
 
 #include "postgres.h"
+#include "utils/memutils.h"
 #include "lib/stringinfo.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
@@ -189,13 +190,16 @@ sq3link_command(sq3link_connection *conn, dblink_command type)
 static sq3link_cursor *
 sq3link_cursor_new(void)
 {
+	MemoryContext	old_context;
 	sq3link_cursor  *p;
 
-	p = malloc(sizeof(sq3link_cursor));
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	p = palloc(sizeof(sq3link_cursor));
 	p->base.fetch = (dblink_fetch_t) sq3link_fetch;
 	p->base.close = (dblink_close_t) sq3link_close;
 	p->base.nfields = 0;
 	p->head = p->iter = NULL;
+	MemoryContextSwitchTo(old_context);
 
 	return p;
 }
@@ -222,13 +226,13 @@ sq3link_close(sq3link_cursor *cur)
 		sq3link_row	   *prev;
 
 		for (c = 0; c < cur->base.nfields; c++)
-			free(i->values[c]);
+			pfree(i->values[c]);
 
 		prev = i;
 		i = i->next;
-		free(prev);
+		pfree(prev);
 	}
-	free(cur);
+	pfree(cur);
 }
 
 static char *
@@ -237,11 +241,11 @@ strdup_utf8(const char *utf8)
 	if (utf8 == NULL)
 		return NULL;
 	else if (GetDatabaseEncoding() == PG_UTF8)
-		return strdup(utf8);
+		return pstrdup(utf8);
 	else
 	{
 		elog(WARNING, "sq3link: non-utf8 encoding is not supported");
-		return strdup(utf8);
+		return pstrdup(utf8);
 	}
 }
 
@@ -251,6 +255,7 @@ sq3link_callback(void *userdata, int argc, char **argv, char **columns)
 	sq3link_cursor *cur = (sq3link_cursor *) userdata;
 	sq3link_row	   *row;
 	int				i;
+	MemoryContext	old_context;
 
 	/* CHECK_FOR_INTERRUPTS */
 #ifdef WIN32
@@ -260,10 +265,13 @@ sq3link_callback(void *userdata, int argc, char **argv, char **columns)
 	if (InterruptPending)
 		return SQLITE_ABORT;
 
-	row = malloc(offsetof(sq3link_row, values) + sizeof(char * ) * argc);
+	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	row = palloc(offsetof(sq3link_row, values) + sizeof(char * ) * argc);
 	row->next = NULL;
 	for (i = 0; i < argc; i++)
 		row->values[i] = strdup_utf8(argv[i]);
+
+	MemoryContextSwitchTo(old_context);
 
 	cur->base.nfields = argc;
 	if (cur->iter)
