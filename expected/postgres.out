@@ -16,6 +16,7 @@ TRUNCATE dblink_tmp;
 INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
 INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
 INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+SELECT dblink.close($1);
 SELECT * FROM dblink_tmp;
 $$
 LANGUAGE sql;
