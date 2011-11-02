@@ -14,6 +14,7 @@ SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(1, ''X'')');
 SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(2, ''BB'')');
 SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(3, ''CCC'')');
 SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')');
+SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
 
 SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
 

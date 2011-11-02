@@ -915,7 +915,8 @@ static void *oralink_realloc(void *ptr, size_t size)
 
 static void oralink_free(void *ptr)
 {
-	return pfree(ptr);
+	if (ptr)
+		pfree(ptr);
 }
 
 #endif

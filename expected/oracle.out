@@ -53,6 +53,12 @@ SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')'
     1
 (1 row)
 
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
+ exec 
+------
+    1
+(1 row)
+
 CREATE TABLE dblink_tmp_ora (LIKE dblink_tbl);
 CREATE FUNCTION dblink.cursor_test_ora(cursor integer, howmany integer)
 RETURNS SETOF dblink_tmp_ora AS
@@ -90,7 +96,8 @@ SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'
  2 | BB
  3 | CCC
  4 | DDDD
-(4 rows)
+ 5 | 
+(5 rows)
 
 BEGIN;
 SELECT dblink.exec('conn_oracle', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
@@ -113,7 +120,8 @@ SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'
  2 | BB
  3 | CCC
  4 | DDDD
-(4 rows)
+ 5 | 
+(5 rows)
 
 BEGIN;
 SELECT dblink.exec('conn_oracle', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
@@ -136,7 +144,8 @@ SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'
  2 | BB
  3 | CCC
  4 | DDDD
-(4 rows)
+ 5 | 
+(5 rows)
 
 -- dblink.query() with an existing connection
 BEGIN;
@@ -147,7 +156,8 @@ SELECT * FROM dblink.query('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
     name     |    srvname    | status | keep 
@@ -164,7 +174,8 @@ SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM d
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
  id | value 
@@ -173,7 +184,8 @@ SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM d
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test_ora(dblink.open('conn_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
  id | value 
@@ -210,7 +222,8 @@ SELECT * FROM dblink.query('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY i
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
      name      |    srvname    | status | keep 
@@ -252,7 +265,8 @@ SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
  id | value 
@@ -261,7 +275,8 @@ SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
  id | value 
@@ -304,7 +319,8 @@ SELECT * FROM dblink.query('server_oracle2', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.query('server_oracle3', 'SELECT * FROM dblink_tbl ORDER BY id', 0, 4) AS t(id integer, value text) ORDER BY id;
  id | value 
@@ -313,7 +329,8 @@ SELECT * FROM dblink.query('server_oracle3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 -- dblink.open() with max_value_len option
 SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 4), 100);
@@ -323,7 +340,8 @@ SELECT * FROM dblink.cursor_test_ora(dblink.open('server_oracle', 'SELECT * FROM
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 -- connection without automatic transaction management
 SELECT dblink.connect('conn_oracle', 'server_oracle', false);

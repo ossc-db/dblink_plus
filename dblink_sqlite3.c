@@ -226,7 +226,8 @@ sq3link_close(sq3link_cursor *cur)
 		sq3link_row	   *prev;
 
 		for (c = 0; c < cur->base.nfields; c++)
-			pfree(i->values[c]);
+			if (i->values[c])
+				pfree(i->values[c]);
 
 		prev = i;
 		i = i->next;
