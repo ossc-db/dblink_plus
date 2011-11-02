@@ -318,7 +318,8 @@ static void pglink_freevalue(pglink_cursor *cur)
 	for (i = 0; i < cur->ntuples; i++)
 	{
 		for (n = 0; n < cur->base.nfields; n++)
-			pfree(cur->values[i].fields[n]);
+			if (cur->values[i].fields[n])
+				pfree(cur->values[i].fields[n]);
 
 		pfree(cur->values[i].fields);
 	}

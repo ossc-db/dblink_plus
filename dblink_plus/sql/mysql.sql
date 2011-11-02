@@ -17,6 +17,7 @@ SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(1, ''X'')');
 SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(2, ''BB'')');
 SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(3, ''CCC'')');
 SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')');
+SELECT dblink.exec('conn_mysql', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
 
 SELECT * FROM dblink.query('conn_mysql', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
 

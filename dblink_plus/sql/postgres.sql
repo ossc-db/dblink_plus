@@ -7,6 +7,7 @@ INSERT INTO dblink_tbl VALUES(1, 'X');
 INSERT INTO dblink_tbl VALUES(2, 'BB');
 INSERT INTO dblink_tbl VALUES(3, 'CCC');
 INSERT INTO dblink_tbl VALUES(4, 'DDDD');
+INSERT INTO dblink_tbl VALUES(5, NULL);
 
 CREATE TABLE dblink_tmp (LIKE dblink_tbl);
 

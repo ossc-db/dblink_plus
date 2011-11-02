@@ -56,6 +56,12 @@ SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')')
     1
 (1 row)
 
+SELECT dblink.exec('conn_sqlite3', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
+ exec 
+------
+    1
+(1 row)
+
 SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id') AS (id integer, value text);
  id | value 
 ----+-------
@@ -63,7 +69,8 @@ SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 BEGIN;
 SELECT dblink.exec('conn_sqlite3', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
@@ -86,7 +93,8 @@ SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 BEGIN;
 SELECT dblink.exec('conn_sqlite3', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
@@ -109,7 +117,8 @@ SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 -- dblink.query() with an existing connection
 BEGIN;
@@ -120,7 +129,8 @@ SELECT * FROM dblink.query('conn_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
      name     |    srvname     | status | keep 
@@ -137,7 +147,8 @@ SELECT * FROM dblink.cursor_test(dblink.open('conn_sqlite3', 'SELECT * FROM dbli
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test(dblink.open('conn_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
  id | value 
@@ -146,7 +157,8 @@ SELECT * FROM dblink.cursor_test(dblink.open('conn_sqlite3', 'SELECT * FROM dbli
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test(dblink.open('conn_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
  id | value 
@@ -183,7 +195,8 @@ SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WHERE server = oid;
       name      |    srvname     | status | keep 
@@ -225,7 +238,8 @@ SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM db
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
  id | value 
@@ -234,7 +248,8 @@ SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM db
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
  id | value 
@@ -257,7 +272,8 @@ SELECT * FROM dblink.query('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY 
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 -- dblink.open() with max_value_len option
 SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 1), 100);
@@ -267,7 +283,8 @@ SELECT * FROM dblink.cursor_test(dblink.open('server_sqlite3', 'SELECT * FROM db
   2 | BB
   3 | CCC
   4 | DDDD
-(4 rows)
+  5 | 
+(5 rows)
 
 -- connection without automatic transaction management
 SELECT dblink.connect('conn_sqlite3', 'server_sqlite3', false);
@@ -279,7 +296,7 @@ SELECT dblink.connect('conn_sqlite3', 'server_sqlite3', false);
 SELECT dblink.exec('conn_sqlite3', 'VACUUM dblink_tbl');
  exec 
 ------
-    4
+    5
 (1 row)
 
 SELECT dblink.disconnect('conn_sqlite3');

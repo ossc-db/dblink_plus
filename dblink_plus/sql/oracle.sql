@@ -16,6 +16,7 @@ SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(1, ''X'')');
 SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(2, ''BB'')');
 SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(3, ''CCC'')');
 SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(4, ''DDDD'')');
+SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
 
 CREATE TABLE dblink_tmp_ora (LIKE dblink_tbl);
 
