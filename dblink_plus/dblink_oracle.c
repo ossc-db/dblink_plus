@@ -857,13 +857,13 @@ oralink_message(char *message, int size, OCIError *errhp, sword status)
 			break;
 		case OCI_ERROR:
 			OCIErrorGet ((void  *) errhp, (ub4) 1, (text *) NULL, &oracode,
-				errbuf, (ub4) sizeof(errbuf) - 1, (ub4) OCI_HTYPE_ERROR);
-			snprintf(message, size - 1, "OCI_ERROR - %s", errbuf);
+				errbuf, (ub4) sizeof(errbuf), (ub4) OCI_HTYPE_ERROR);
+			snprintf(message, size, "OCI_ERROR - %s", errbuf);
 			break;
 		case OCI_SUCCESS_WITH_INFO:
 			OCIErrorGet ((void  *) errhp, (ub4) 1, (text *) NULL, &oracode,
-				errbuf, (ub4) sizeof(errbuf) - 1, (ub4) OCI_HTYPE_ERROR);
-			snprintf(message, size - 1, "OCI_SUCCESS_WITH_INFO - %s", errbuf);
+				errbuf, (ub4) sizeof(errbuf), (ub4) OCI_HTYPE_ERROR);
+			snprintf(message, size, "OCI_SUCCESS_WITH_INFO - %s", errbuf);
 			break;
 		case OCI_INVALID_HANDLE:
 			strlcpy(message, "OCI_INVALID_HANDLE", size);
@@ -875,7 +875,7 @@ oralink_message(char *message, int size, OCIError *errhp, sword status)
 			strlcpy(message, "OCI_CONTINUE", size);
 			break;
 		default:
-			snprintf(message, size - 1, "OCI: %d", status);
+			snprintf(message, size, "OCI: %d", status);
 			break;
 	}
 }
