@@ -12,4 +12,5 @@ rsync -avz index.html $USERNAME@web.sourceforge.net:/home/project-web/interdbcon
 rsync -avz style.css $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/style.css
 rsync -avz ../syncdb/doc/ $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/syncdb/
 rsync -avz ../dblink_plus/doc/ $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/dblink_plus/
+rsync -avz ../pgsql_fdw/doc/ $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/pgsql_fdw/
 
