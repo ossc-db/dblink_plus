@@ -1,0 +1,205 @@
+================================================================================
+ README for pgsql_fdw
+
+ Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+================================================================================
+
+Overview of pgsql_fdw
+---------------------
+
+The pgsql_fdw is a foreign-data wrapper for external PostgreSQL servers.  The
+pgsql_fdw module provides pgsql_fdw_handler, foreign-data wrapper handler
+function, which can be used to access external PostgreSQL server via plain SQL,
+and pgsql_fdw_validator, foreign-data wrapper validator function, which can be
+used to validate FDW options set to SQL/MED objects defined for pgsql_fdw.
+
+The pgsql_fdw can be installed on only PostgreSQL 9.1, but it can connect to
+older versions.
+
+How to Install
+--------------
+
+First of all, you need to install binary module of pgsql_fdw into your
+PostgreSQL installation.  To build pgsql_fdw, you need source code of
+PostgreSQL 9.1, or pgxs environment.
+
+If you have appropriate source code, you can build with steps below:
+
+    1) extract source files into contrib directory from tarball
+    2) change directory to pgsql_fdw directory
+    3) execute "make -C contrib/pgsql_fdw" to build
+    4) execute "make -C contrib/pgsql_fdw install" to install
+
+If you don't have appropriate source code, you have to use pgxs environment
+with steps below:
+
+    1) extract source files into arbitrary directory from tarball
+    2) change directory to pgsql_fdw directory
+    3) execute "USE_PGXS=1 make -C pgsql_fdw" to build
+    4) execute "USE_PGXS=1 make -C pgsql_fdw install" to install
+
+Now you can install pgsql_fdw into your database via CREATE EXTENSION command.
+Note that you required superuser privilege to do this.  The default FDW
+pgsql_fdw is created during CREATE EXTENSION automatically.  Probably you don't
+need to execute CREATE FOREIGN DATA WRAPPER explicitly.
+
+    $ psql
+    postgres=# CREATE EXTENSION pgsql_fdw;
+    CREATE EXTENSION
+    postgres=# \dew
+                        List of foreign-data wrappers
+       Name    |  Owner   |      Handler      |     Validator
+    -----------+----------+-------------------+---------------------
+     pgsql_fdw | postgres | pgsql_fdw_handler | pgsql_fdw_validator
+    (1 row)
+
+How to access external data
+---------------------------
+
+Now you can create foreign servers and user mappings to specify connection
+information.
+
+    postgres=# CREATE SERVER asset_db FOREIGN DATA WRAPPER pgsql_fdw
+    postgres-# OPTIONS (host 'server', port '5432', dbname 'asset_db');
+    CREATE SERVER
+    postgres=# CREATE USER MAPPING FOR current_user SERVER asset_db
+    postgres-# OPTIONS (user 'manager', password 'secret');
+    CREATE USER MAPPING
+
+After that, you can create foreign tables which define data structure of remote
+tables.  If you have a remote table below,
+
+    postgres=# \d person
+                              Table "public.app_user"
+      Column  |  Type   |                      Modifiers
+    ----------+---------+-------------------------------------------------------
+     id       | integer | not null default nextval('app_user_id_seq'::regclass)
+     name     | text    |
+     birthday | date    |
+    Indexes:
+        "app_user_pkey" PRIMARY KEY, btree (id)
+
+you can define a foreign table as below:
+
+    postgres=# CREATE FOREIGN TABLE app_user (
+    postgres(#     id integer,
+    postgres(#     name text,
+    postgres(#     birthday date
+    postgres(# ) SERVER asset_db;
+
+Note that you need to use integer and bigint instead of serial and bigserial
+respectively, because actual values are generated on remote side.  Once you
+have created a foreign table, you can execute SELECT query against it.
+
+    postgres=# SELECT * FROM app_user WHERE birthday < '2000-01-01' ORDER BY id;
+
+Some of conditions which appear in WHERE clause are sent to remote side to
+reduce amount of data transferred.  You can see the query actually sent to
+remote side in result of EXPLAIN command, "Remote SQL" item below "ForeignScan"
+node.  Please see the section "SQL sent to remote PostgreSQL" for details.
+
+    postgres=# EXPLAIN SELECT id FROM app_user
+    postgres-# WHERE birthday < '2000-01-01' ORDER BY id;
+                                                                QUERY PLAN
+    ----------------------------------------------------------------------------------------------------------------------------------
+     Sort  (cost=59.83..62.33 rows=1000 width=4)
+       Sort Key: id
+       ->  Foreign Scan on app_user  (cost=10.00..10.00 rows=1000 width=4)
+             Remote SQL: SELECT app_user.id, NULL, NULL FROM public.app_user app_user WHERE (app_user.birthday < '2000-01-01'::date)
+    (4 rows)
+
+SQL sent to remote PostgreSQL
+-----------------------------
+
+Foreign tables can be used in any SELECT statement, including CTE, subquery and
+PREPARE statement.  Currently pgsql_fdw sends SELECT query for each foreign
+table appears in the local query.  This means that every join is done on local
+side.
+
+Some kind of query can be optimized by pgsql_fdw.
+
+    1) unused column reference would be replaced with "NULL".
+    2) some part of WHERE/JOIN clause, which consists of limited elements, can
+       be sent and evaluated on remote side.  Expressions can be sent are:
+            * constant value
+            * array, if every elements suit these rules recursively
+            * stable functions, if every arguments suit these rules recursively
+            * operators implemented with stable functions
+            * Boolean expressions such as AND, OR and NOT
+            * x IS NULL and x IS NOT NULL
+            * x IS DISTINCT FROM y
+            * scalar op ANY/ALL (array), if op is stable
+            * argument of EXECUTE statement
+            * reference to the column of the foreign table
+
+The pgsql_fdw always uses DECLARE statement to declare a cursor for each scan,
+and fetches result separately when next bunch of result is required.
+
+FDW options
+-----------
+
+The pgsql_fdw accepts various FDW options, and they can be classified to some
+groups.
+
+* Connection options
+The pgsql_fdw reads connection information from FDW options of foreign
+server and user mapping.  The pgsql_fdw accepts subset of libpq connection
+options:
+
+    * For server option
+    authtype, service, connect_timeout, dbname, host, hostaddr, port, tty,
+    options, application_name, keepalives, keepalives_idle,
+    keepalives_interval, keepalives_count, requiressl, sslmode, sslcert,
+    sslkey, sslrootcert, sslcrl, requirepeer, krbsrvname, gsslib
+
+    * For user mapping option
+    user, password
+
+Note: If you omit connection information, pgsql_fdw takes the alternatives from
+environment variables of the user who launched the postgres server.  Usually
+such omission would cause unexpected result, so it's strongly recommended to
+specify connection information explicitly as much as you can.
+
+* Object name options
+You can specify schema name and relation name of a remote table as foreign
+table's FDW option nspname and relname respectively.  These options allow
+you to define local foreign tables with different name from remote side.
+
+* Cursor options
+You can control number of rows fetched at a time by specifying fetch_count FDW
+option on foreign table or foreign server.  If you specified on both, setting
+of foreign table is used.  Default value is 10000.
+
+Connection management
+---------------------
+
+Connection to a foreign server is established in the beginning of first query
+which uses a foreign server, and it is kept even though the query has finished.
+The pgsql_fdw shares a connection when multiple foreign tables are used in a
+local query and they belong to same foreign server.
+
+However, if local transaction aborts, all connections are discarded
+automatically.  This behavior would avoid possible connection leak on error
+cases.
+
+When you want to discard persistent connection at arbitrary timing, use
+pgsql_fdw_disconnect() with server oid and user oid in the session which has
+established the connection.  You can also see list of active connections via
+pgsql_fdw_connections view.
+
+Transaction management
+----------------------
+
+The pgsql_fdw executes BEGIN when a new connection has established.  This means
+that all remote queries are executed in a transaction.  Since the default
+transaction isolation level is READ COMMITTED, multiple foreign scans in a
+local query might produce inconsistent results.
+
+To avoid this inconsistency, you can use SERIALIZABLE level for remote
+transaction with setting default_transaction_isolation for the user used for
+pgsql_fdw connection on remote side.
+
+Copyright
+---------
+
+Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION

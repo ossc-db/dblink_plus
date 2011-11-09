@@ -1,0 +1,406 @@
+-- ===================================================================
+-- create FDW objects
+-- ===================================================================
+CREATE EXTENSION pgsql_fdw;
+CREATE SERVER loopback1 FOREIGN DATA WRAPPER pgsql_fdw;
+CREATE SERVER loopback2 FOREIGN DATA WRAPPER pgsql_fdw
+  OPTIONS (dbname 'contrib_regression');
+CREATE USER MAPPING FOR public SERVER loopback1
+	OPTIONS (user 'value', password 'value');
+CREATE USER MAPPING FOR public SERVER loopback2;
+CREATE FOREIGN TABLE ft1 (
+	c1 int NOT NULL,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp
+) SERVER loopback2;
+CREATE FOREIGN TABLE ft2 (
+	c1 int NOT NULL,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp
+) SERVER loopback2;
+-- ===================================================================
+-- create objects used through FDW
+-- ===================================================================
+CREATE SCHEMA "S 1";
+CREATE TABLE "S 1"."T 1" (
+	c1 int NOT NULL,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp,
+	CONSTRAINT t1_pkey PRIMARY KEY (c1)
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "t1_pkey" for table "T 1"
+CREATE TABLE "S 1"."T 2" (
+	c1 int NOT NULL,
+	c2 text,
+	CONSTRAINT t2_pkey PRIMARY KEY (c1)
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "t2_pkey" for table "T 2"
+BEGIN;
+TRUNCATE "S 1"."T 1";
+INSERT INTO "S 1"."T 1"
+	SELECT id,
+	       id % 10,
+	       to_char(id, 'FM00000'),
+	       '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
+	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval
+	FROM generate_series(1, 1000) id;
+TRUNCATE "S 1"."T 2";
+INSERT INTO "S 1"."T 2"
+	SELECT id,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+COMMIT;
+-- ===================================================================
+-- tests for pgsql_fdw_validator
+-- ===================================================================
+ALTER FOREIGN DATA WRAPPER pgsql_fdw OPTIONS (host 'value');    -- ERROR
+ERROR:  invalid option "host"
+HINT:  Valid options in this context are: 
+-- requiressl, krbsrvname and gsslib are omitted because they depend on
+-- configure option
+ALTER SERVER loopback1 OPTIONS (
+	authtype 'value',
+	service 'value',
+	connect_timeout 'value',
+	dbname 'value',
+	host 'value',
+	hostaddr 'value',
+	port 'value',
+	--client_encoding 'value',
+	tty 'value',
+	options 'value',
+	application_name 'value',
+	--fallback_application_name 'value',
+	keepalives 'value',
+	keepalives_idle 'value',
+	keepalives_interval 'value',
+	-- requiressl 'value',
+	sslmode 'value',
+	sslcert 'value',
+	sslkey 'value',
+	sslrootcert 'value',
+	sslcrl 'value'
+	--requirepeer 'value',
+	-- krbsrvname 'value',
+	-- gsslib 'value',
+	--replication 'value'
+);
+ALTER SERVER loopback1 OPTIONS (user 'value');                  -- ERROR
+ERROR:  invalid option "user"
+HINT:  Valid options in this context are: authtype, service, connect_timeout, dbname, host, hostaddr, port, tty, options, application_name, keepalives, keepalives_idle, keepalives_interval, keepalives_count, sslmode, sslcert, sslkey, sslrootcert, sslcrl, requirepeer, fetch_count
+ALTER SERVER loopback2 OPTIONS (ADD fetch_count '2');
+ALTER USER MAPPING FOR public SERVER loopback1
+	OPTIONS (DROP user, DROP password);
+ALTER USER MAPPING FOR public SERVER loopback1
+	OPTIONS (host 'value');                                     -- ERROR
+ERROR:  invalid option "host"
+HINT:  Valid options in this context are: user, password
+ALTER FOREIGN TABLE ft1 OPTIONS (nspname 'S 1', relname 'T 1');
+ALTER FOREIGN TABLE ft2 OPTIONS (nspname 'S 1', relname 'T 1', fetch_count '100');
+ALTER FOREIGN TABLE ft1 OPTIONS (invalid 'value');              -- ERROR
+ERROR:  invalid option "invalid"
+HINT:  Valid options in this context are: nspname, relname, fetch_count
+ALTER FOREIGN TABLE ft1 OPTIONS (fetch_count 'a');              -- ERROR
+ERROR:  invalid value for fetch_count: "a"
+ALTER FOREIGN TABLE ft1 OPTIONS (fetch_count '0');              -- ERROR
+ERROR:  invalid value for fetch_count: "0"
+ALTER FOREIGN TABLE ft1 OPTIONS (fetch_count '-1');             -- ERROR
+ERROR:  invalid value for fetch_count: "-1"
+\dew+
+                                List of foreign-data wrappers
+   Name    |  Owner   |      Handler      |      Validator      | Access privileges | Options 
+-----------+----------+-------------------+---------------------+-------------------+---------
+ pgsql_fdw | postgres | pgsql_fdw_handler | pgsql_fdw_validator |                   | 
+(1 row)
+
+\des+
+                                                                                                                                                                              List of foreign servers
+   Name    |  Owner   | Foreign-data wrapper | Access privileges | Type | Version |                                                                                                                                            Options                                                                                                                                             
+-----------+----------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ loopback1 | postgres | pgsql_fdw            |                   |      |         | {authtype=value,service=value,connect_timeout=value,dbname=value,host=value,hostaddr=value,port=value,tty=value,options=value,application_name=value,keepalives=value,keepalives_idle=value,keepalives_interval=value,sslmode=value,sslcert=value,sslkey=value,sslrootcert=value,sslcrl=value}
+ loopback2 | postgres | pgsql_fdw            |                   |      |         | {dbname=contrib_regression,fetch_count=2}
+(2 rows)
+
+\deu+
+      List of user mappings
+  Server   | User name | Options 
+-----------+-----------+---------
+ loopback1 | public    | 
+ loopback2 | public    | 
+(2 rows)
+
+\det+
+                           List of foreign tables
+ Schema | Table |  Server   |                    Options                    
+--------+-------+-----------+-----------------------------------------------
+ public | ft1   | loopback2 | {"nspname=S 1","relname=T 1"}
+ public | ft2   | loopback2 | {"nspname=S 1","relname=T 1",fetch_count=100}
+(2 rows)
+
+-- ===================================================================
+-- simple queries
+-- ===================================================================
+-- single table, with/without alias
+EXPLAIN (VERBOSE, COSTS false) SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Limit
+   Output: c1, c2, c3, c4, c5
+   ->  Sort
+         Output: c1, c2, c3, c4, c5
+         Sort Key: ft1.c3, ft1.c1
+         ->  Foreign Scan on public.ft1
+               Output: c1, c2, c3, c4, c5
+               Remote SQL: DECLARE pgsql_fdw_cursor_0 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5 FROM "S 1"."T 1"
+(8 rows)
+
+SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
+ c1  | c2 |  c3   |              c4              |            c5            
+-----+----+-------+------------------------------+--------------------------
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970
+ 102 |  2 | 00102 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970
+ 103 |  3 | 00103 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970
+ 104 |  4 | 00104 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970
+ 105 |  5 | 00105 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970
+ 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970
+ 107 |  7 | 00107 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970
+ 108 |  8 | 00108 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970
+ 109 |  9 | 00109 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970
+ 110 |  0 | 00110 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS false) SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Limit
+   Output: c1, c2, c3, c4, c5
+   ->  Sort
+         Output: c1, c2, c3, c4, c5
+         Sort Key: t1.c3, t1.c1
+         ->  Foreign Scan on public.ft1 t1
+               Output: c1, c2, c3, c4, c5
+               Remote SQL: DECLARE pgsql_fdw_cursor_2 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5 FROM "S 1"."T 1"
+(8 rows)
+
+SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+ c1  | c2 |  c3   |              c4              |            c5            
+-----+----+-------+------------------------------+--------------------------
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970
+ 102 |  2 | 00102 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970
+ 103 |  3 | 00103 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970
+ 104 |  4 | 00104 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970
+ 105 |  5 | 00105 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970
+ 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970
+ 107 |  7 | 00107 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970
+ 108 |  8 | 00108 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970
+ 109 |  9 | 00109 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970
+ 110 |  0 | 00110 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970
+(10 rows)
+
+-- with WHERE clause
+SELECT * FROM ft1 t1 WHERE t1.c1 = 101;
+ c1  | c2 |  c3   |              c4              |            c5            
+-----+----+-------+------------------------------+--------------------------
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970
+(1 row)
+
+-- aggregate
+SELECT COUNT(*) FROM ft1 t1;
+ count 
+-------
+  1000
+(1 row)
+
+-- join two tables
+SELECT t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+ c1  
+-----
+ 101
+ 102
+ 103
+ 104
+ 105
+ 106
+ 107
+ 108
+ 109
+ 110
+(10 rows)
+
+-- subquery
+SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER BY c1;
+ c1 | c2 |  c3   |              c4              |            c5            
+----+----+-------+------------------------------+--------------------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970
+  5 |  5 | 00005 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970
+  7 |  7 | 00007 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970
+  8 |  8 | 00008 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970
+  9 |  9 | 00009 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970
+ 10 |  0 | 00010 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970
+(10 rows)
+
+-- subquery+MAX
+SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
+  c1  | c2 |  c3   |              c4              |            c5            
+------+----+-------+------------------------------+--------------------------
+ 1000 |  0 | 01000 | Thu Jan 01 00:00:00 1970 PST | Thu Jan 01 00:00:00 1970
+(1 row)
+
+-- used in CTE
+WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
+ c1 | c2 |  c3   |              c4              
+----+----+-------+------------------------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST
+  5 |  5 | 00005 | Tue Jan 06 00:00:00 1970 PST
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST
+  7 |  7 | 00007 | Thu Jan 08 00:00:00 1970 PST
+  8 |  8 | 00008 | Fri Jan 09 00:00:00 1970 PST
+  9 |  9 | 00009 | Sat Jan 10 00:00:00 1970 PST
+ 10 |  0 | 00010 | Sun Jan 11 00:00:00 1970 PST
+(10 rows)
+
+-- fixed values
+SELECT 'fixed', NULL FROM ft1 t1 WHERE c1 = 1;
+ ?column? | ?column? 
+----------+----------
+ fixed    | 
+(1 row)
+
+-- ===================================================================
+-- parameterized queries
+-- ===================================================================
+-- simple join
+PREPARE st1(int, int) AS SELECT t1.c3, t2.c3 FROM ft1 t1, ft2 t2 WHERE t1.c1 = $1 AND t2.c1 = $2;
+EXPLAIN (COSTS false) EXECUTE st1(1, 2);
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop
+   ->  Foreign Scan on ft1 t1
+         Filter: (c1 = $1)
+         Remote SQL: DECLARE pgsql_fdw_cursor_17 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
+   ->  Materialize
+         ->  Foreign Scan on ft2 t2
+               Filter: (c1 = $2)
+               Remote SQL: DECLARE pgsql_fdw_cursor_18 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $2) 
+(8 rows)
+
+EXECUTE st1(1, 1);
+  c3   |  c3   
+-------+-------
+ 00001 | 00001
+(1 row)
+
+EXECUTE st1(101, 101);
+  c3   |  c3   
+-------+-------
+ 00101 | 00101
+(1 row)
+
+-- subquery using stable function (can't be pushed down)
+PREPARE st2(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND EXTRACT(dow FROM c4) = 6) ORDER BY c1;
+EXPLAIN (COSTS false) EXECUTE st2(10, 20);
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Sort Key: t1.c1
+   ->  Nested Loop
+         Join Filter: (t1.c3 = t2.c3)
+         ->  HashAggregate
+               ->  Foreign Scan on ft2 t2
+                     Filter: ((c1 > $1) AND (date_part('dow'::text, c4) = 6::double precision))
+                     Remote SQL: DECLARE pgsql_fdw_cursor_20 SCROLL CURSOR FOR SELECT c1, NULL, c3, c4, NULL FROM "S 1"."T 1" WHERE (c1 > $1) 
+         ->  Foreign Scan on ft1 t1
+               Filter: (c1 < $2)
+               Remote SQL: DECLARE pgsql_fdw_cursor_19 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5 FROM "S 1"."T 1" WHERE (c1 < $2) 
+(11 rows)
+
+EXECUTE st2(10, 20);
+ c1 | c2 |  c3   |              c4              |            c5            
+----+----+-------+------------------------------+--------------------------
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970
+(1 row)
+
+EXECUTE st1(101, 101);
+  c3   |  c3   
+-------+-------
+ 00101 | 00101
+(1 row)
+
+-- subquery using immutable function (can be pushed down)
+PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND EXTRACT(dow FROM c5) = 6) ORDER BY c1;
+EXPLAIN (COSTS false) EXECUTE st3(10, 20);
+                                                                                               QUERY PLAN                                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Sort Key: t1.c1
+   ->  Nested Loop
+         Join Filter: (t1.c3 = t2.c3)
+         ->  HashAggregate
+               ->  Foreign Scan on ft2 t2
+                     Filter: ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision))
+                     Remote SQL: DECLARE pgsql_fdw_cursor_22 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, c5 FROM "S 1"."T 1" WHERE ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision)) 
+         ->  Foreign Scan on ft1 t1
+               Filter: (c1 < $2)
+               Remote SQL: DECLARE pgsql_fdw_cursor_21 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5 FROM "S 1"."T 1" WHERE (c1 < $2) 
+(11 rows)
+
+EXECUTE st3(10, 20);
+ c1 | c2 |  c3   |              c4              |            c5            
+----+----+-------+------------------------------+--------------------------
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970
+(1 row)
+
+EXECUTE st3(20, 30);
+ c1 | c2 |  c3   |              c4              |            c5            
+----+----+-------+------------------------------+--------------------------
+ 23 |  3 | 00023 | Sat Jan 24 00:00:00 1970 PST | Sat Jan 24 00:00:00 1970
+(1 row)
+
+-- cleanup
+DEALLOCATE st1;
+DEALLOCATE st2;
+DEALLOCATE st3;
+-- ===================================================================
+-- connection management
+-- ===================================================================
+SELECT srvname, usename FROM pgsql_fdw_connections;
+  srvname  | usename  
+-----------+----------
+ loopback2 | postgres
+(1 row)
+
+SELECT pgsql_fdw_disconnect(srvid, usesysid) FROM pgsql_fdw_get_connections();
+ pgsql_fdw_disconnect 
+----------------------
+ OK
+(1 row)
+
+SELECT srvname, usename FROM pgsql_fdw_connections;
+ srvname | usename 
+---------+---------
+(0 rows)
+
+-- ===================================================================
+-- cleanup
+-- ===================================================================
+DROP EXTENSION pgsql_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server loopback1
+drop cascades to user mapping for public
+drop cascades to server loopback2
+drop cascades to user mapping for public
+drop cascades to foreign table ft1
+drop cascades to foreign table ft2

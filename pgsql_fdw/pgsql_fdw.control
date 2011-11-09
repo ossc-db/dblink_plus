@@ -1,0 +1,5 @@
+# pgsql_fdw extension
+comment = 'foreign-data wrapper for remote PostgreSQL servers'
+default_version = '1.0'
+module_pathname = '$libdir/pgsql_fdw'
+relocatable = true
