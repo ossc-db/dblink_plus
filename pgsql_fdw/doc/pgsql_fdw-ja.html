@@ -1,32 +1,30 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html><head>
-
-
+<html>
+<head>
 <title>pgsql_fdw</title>
-<!-- Uncoment after the tool has been hosted somewhere.
-<link rel="home" title="pgsql_fdw" href="http://pgstatsinfo.projects.postgresql.org/index.html">
--->
+<link rel="home" title="pgsql_fdw" href="index.html">
 <link rel="stylesheet" type="text/css" href="style.css">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-</head><body>
-<h1 id="pgsql_fdw">pgsql_fdw 1.0.0</h1>
+</head>
+
+<body>
+<h1 id="pgsql_fdw">pgsql_fdw</h1>
 <div class="navigation">
-<!--
-  <a href="http://pgstatsinfo.projects.postgresql.org/index_ja.html">Top</a> &gt;
-  <a href="http://pgstatsinfo.projects.postgresql.org/pg_statsinfo-ja.html">pg_statsinfo</a>
--->
+  <a href="../index.html">Top</a> &gt;
+  <a href="pgsql_fdw-ja.html">pgsql_fdw</a>
 <div>
 <hr>
 
 <div class="index">
 <ol>
-<li><a href="#name">pgsql_fdwとは？</a></li>
-<li><a href="#description">機能概要</a></li>
-<li><a href="#install">インストール</a>
+<li><a href="#name">名前</a></li>
+<li><a href="#description">概要</a></li>
+<li><a href="#install">導入方法</a>
 <ol>
   <li><a href="#requirement">動作環境</a></li>
   <li><a href="#build">ビルド</a></li>
   <li><a href="#create-extension">エクステンションの作成</a></li>
+  <li><a href="#uninstall">アンインストール</a></li>
 </ol>
 </li>
 <li><a href="#usage">使い方</a></li>
@@ -36,30 +34,34 @@
   <li><a href="#create-foreign-table">外部テーブルの作成</a></li>
   <li><a href="#execute-query">検索の実行</a></li>
   <li><a href="#alter-options">オプションの変更</a></li>
-  <li><a href="#valid-options">有効なオプション</a></li>
+  <li><a href="#connections">接続管理</a></li>
 </ol>
-<li><a href="#uninstall">アンインストール</a></li>
+<li><a href="#valid-options">有効なオプション</a></li>
 <li><a href="#restrictions">使用上の注意と制約</a></li>
 <li><a href="#details">詳細情報</a></li>
 <ol>
   <li><a href="#connection-option">内部で設定する接続オプション</a></li>
   <li><a href="#functions">バリデータ関数とハンドラ関数</a></li>
-  <li><a href="#connections">接続管理</a></li>
 </ol>
 <li><a href="#seealso">関連項目</a></li>
 </ol>
 </div>
 
-<h2 id="name">pgsql_fdwとは？</h2>
-<p>pgsql_fdwは、外部のPostgreSQLサーバに対して検索を実行するための外部データラッパです。</p>
-<h2 id="description">機能概要</h2>
+<h2 id="name">名前</h2>
+<p>pgsql_fdw -- 外部のPostgreSQLサーバに対して検索を実行するための外部データラッパです。</p>
+<h2 id="description">概要</h2>
 <p>pgsql_fdwを用いると、外部のPostgreSQLサーバにあるテーブルに対応する外部テーブルを作成できます。また、、その外部テーブルを用いた通常のSELECT文を実行することで、通常のテーブルと同様に外部データを扱うことができます。</p>
+<p>pgsql_fdwは、サーバ間でのデータ転送量を削減するために、外部のPostgreSQLに発行するクエリを最適化します。</p>
+<ul>
+<li>クエリに必要のない列をSELECT句から省略します。</li>
+<li>一部のWHERE句条件を外部サーバ側でも評価します。</li>
+</ul>
 <p>PostgreSQL 9.1では外部テーブルは読み取り専用のため、pgsql_fdwで定義した外部テーブルに対する更新(INSERT/UPDATE/DELETE)はエラーとなり実行できません。</p>
 
-<h2 id="install">インストール</h2>
+<h2 id="install">導入方法</h2>
 <p>pgsql_fdwのインストール方法について説明します。
 <!--
-各インストールパッケージは<a href="http://pgfoundry.org/frs/?group_id=1000422">こちら</a>からダウンロードして下さい</p>
+各インストールパッケージは<a href="https://sourceforge.net/projects/interdbconnect/files/pgsql_fdw">こちら</a>からダウンロードして下さい</p>
 -->
 
 <h3 id="requirement">動作環境</h3>
@@ -68,7 +70,7 @@
 </dl>
 
 <h3 id="build">ビルド</h3>
-<p>pgsql_fdwをソースコードからビルドするには、PostgreSQL 9.1 のソースツリーか、インストール済みのpgxsが必要です。</p>
+<p>pgsql_fdwをソースコードからビルドするには、PostgreSQL 9.1 のソースツリーか、インストール済みのpgxsが必要です。以下の例のx.y.zは、ダウンロードしたバージョンに読み替えて下さい。</p>
 
 <h4 id="build-with-source">ソースツリーを用いたビルド</h4>
 <p>PostgreSQLのソースツリーを使用する場合は、PostgreSQL本体のconfigureおよびビルドを済ませてから、contrib配下にpgsql_fdwのソースを展開し、makeを実施します。</p>
@@ -77,20 +79,19 @@ $ cd postgresql-9.1.x
 $ ./configure
 $ make
 $ cd contrib
-$ tar zxvf pgsql_fdw-1.0.0.tar.gz
-$ cd pgsql_fdw-1.0.0
+$ tar zxvf pgsql_fdw-x.y.z.tar.gz
+$ cd pgsql_fdw-x.y.z
 $ make
-$ make install 
+$ sudo make install 
 </pre>
 
 <h4 id="build-with-pgxs">pgxsを用いたビルド</h4>
 <p>pgxsを用いる場合は、USE_PGXS変数を設定してからビルドおよびインストールを実施します。</p>
 <pre>
-$ tar xzvf pgsql_fdw-1.0.0.tar.gz
+$ tar xzvf pgsql_fdw-x.y.z.tar.gz
 $ cd pgsql_fdw
 $ make USE_PGXS=1
-$ su
-# make USE_PGXS=1 install
+$ sudo make USE_PGXS=1 install
 </pre>
 
 <h3 id="create-extension">エクステンションの作成</h3>
@@ -109,6 +110,22 @@ postgres=# \dew
 postgres=#
 </pre>
 <p>
+
+<h3 id="uninstall">アンインストール</h3>
+<p>pgsql_fdwをアンインストールするには、DROP EXTENSION文を実行します。pgsql_fdwに関連するオブジェクトが存在する場合は、先にそれらを削除しておくか、CASCADEオプションが必要です。</p>
+<p>以下の例では一つの外部サーバとユーザマッピング、四つの外部テーブルをまとめて削除しています。</p>
+<pre>
+postgres=# drop EXTENSION pgsql_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server remote_db
+drop cascades to user mapping for public
+drop cascades to foreign table remote_accounts
+drop cascades to foreign table remote_branches
+drop cascades to foreign table remote_tellers
+drop cascades to foreign table remote_history
+DROP EXTENSION
+postgres=#
+</pre>
 
 <h2 id="usage">使い方</h2>
 <p>pgsql_fdwを用いて外部のPostgreSQLサーバにあるテーブルを検索する手順について説明します。なお、接続情報はサンプルですので、実際の環境に合わせて適宜読み替えてください。</p>
@@ -189,9 +206,30 @@ ALTER USER MAPPING
 postgres=#
 </pre>
 
-<h3 id="valid-options">有効なオプション</h3>
+<h3 id="connections">接続管理</h3>
+<p>pgsql_fdwは、ある外部サーバ上の外部テーブルを最初に検索するときに接続を確立します。いったん確立された接続は、ローカルのセッションが続いている間はできる限り再利用されます。また、一つのクエリ中で同一外部サーバ上の複数の外部テーブルを使用していた場合も、接続を再利用します。このため、ある外部サーバへの接続は、ローカルユーザを切り替えない限り一つだけです。現在接続している外部サーバは、pgsql_fdw_connectionsビューで確認できます。
+</p>
+<pre>
+postgres=# select * from pgsql_fdw_connections;
+ srvid |    srvname     | usesysid | usename
+-------+----------------+----------+----------
+ 16530 | remote_pgbench |       10 | postgres
+(1 row)
+</pre>
+<p>任意のタイミングで接続を切断したい場合は、接続先の外部サーバのOIDとローカルユーザのOIDを指定して pgsql_fdw_disconnect() を実行してください。pgsql_fdw_connectionsビューは外部サーバとローカルユーザのOIDを返すので、下記のクエリを実行すると全ての接続を切断できます。</p>
+<pre>
+postgres=# SELECT pgsql_fdw_disconnect(srvid, usesysid) FROM pgsql_fdw_connections;
+ pgsql_fdw_disconnect
+----------------------
+ OK
+ OK
+(2 rows)
+</pre>
+<p>なお、ローカルのトランザクションがアボートすると、pgsql_fdwは全ての外部サーバへの接続を切断します。これは、エラーなどによる接続リークを防ぐための対処です。その後、同じ外部サーバ上の外部テーブルを検索すると、再び自動的に接続が確立されます。</p>
+
+<h2 id="valid-options">有効なオプション</h2>
 <p>pgsql_fdwでは、リモートデータベースに対して検索を実行するのに必要な情報を、関連するオブジェクトの FDW オプションから取得します。</p>
-<h4>接続オプション</h4>
+<h3>接続オプション</h3>
 外部サーバへの接続情報として、下記のものを除く全ての libpq オプションが指定可能です。user と password のみユーザマッピングに指定し、それ以外は外部サーバの FDW オプションに指定してください。
 <ul>
 <li>client_encoding</li>
@@ -203,27 +241,11 @@ postgres=#
 <p>
 libpq のオプションについては、「<a href="http://www.postgresql.jp/document/9.1/html/libpq-connect.html">データベース接続制御関数</a>」を参照してください。なお、接続オプションを省略した場合、ローカルのPostgreSQLサーバを起動したユーザの環境設定に従いますのでご注意ください。また、無効なオプションを指定した場合はオプション設定時にエラーが発生しますが、必須項目が省略されていたり設定した値が誤っていた場合は、検索実行時にエラーが発生するので注意してください。</p>
 
-<h4>オブジェクト名オプション</h4>
+<h3>オブジェクト名オプション</h3>
 <p>外部テーブルの FDW オプションとして nspname や relname オプションを設定すると、外部テーブルのオブジェクト名(それぞれスキーマ名とテーブル名)を指定できます。省略時にはローカルの外部テーブルと同じ名称が使われます。</p>
 
-<h4>カーソルオプション</h4>
+<h3>カーソルオプション</h3>
 <p>fetch_count オプションを指定することで、pgsql_fdw が内部的に使用するカーソルで一回にフェッチする行数を指定できます。デフォルトは10,000行です。外部テーブルと外部サーバのどちらにも指定できますが、両方指定した場合は外部テーブルの設定が使われます。</p>
-
-<h2 id="uninstall">アンインストール</h2>
-<p>pgsql_fdwをアンインストールするには、DROP EXTENSION文を実行します。pgsql_fdwに関連するオブジェクトが存在する場合は、先にそれらを削除しておくか、CASCADEオプションが必要です。</p>
-<p>以下の例では一つの外部サーバとユーザマッピング、四つの外部テーブルをまとめて削除しています。</p>
-<pre>
-postgres=# drop EXTENSION pgsql_fdw CASCADE;
-NOTICE:  drop cascades to 6 other objects
-DETAIL:  drop cascades to server remote_db
-drop cascades to user mapping for public
-drop cascades to foreign table remote_accounts
-drop cascades to foreign table remote_branches
-drop cascades to foreign table remote_tellers
-drop cascades to foreign table remote_history
-DROP EXTENSION
-postgres=#
-</pre>
 
 <h2 id="restrictions">使用上の注意と制約</h2>
 <p>pgsql_fdwを使用する際には、以下の使用上の注意と制約があります。</p>
@@ -244,18 +266,6 @@ postgres=#
 
 <h3 id="functions">バリデータ関数とハンドラ関数</h3>
 <p>pgsql_fdwでは、バリデータ関数として pgsql_fdw_validatorを、ハンドラ関数としてpgsql_fdw_handler関数をそれぞれ定義します。これらはCREATE EXTENSION文で自動的に作成されます。</p>
-
-<h3 id="connections">接続管理</h3>
-<p>pgsql_fdwでは、ある外部サーバへの接続が最初に必要になったタイミングで外部接続を確率し、それ以降はローカルのセッションが続いている限りその接続を再利用します。同一のローカルクエリ内で同じ外部サーバの外部テーブルを複数使用した場合でも、一つの接続で全ての外部テーブルスキャンを実行します。ただし、クエリ途中で何らかのエラーが発生した場合、接続は自動的に切断されます。</p>
-<p>任意のタイミングで接続を切断したい場合は、接続先の外部サーバ名を指定して pgsql_fdw_disconnect() を実行してください。現在接続中の外部サーバは、pgsql_fdw_get_connections() で取得できます。pgsql_fdw_get_connections() は外部サーバ名をtext配列で返すので、下記のクエリを実行すると全ての接続を切断できます。</p>
-<pre>
-postgres=# SELECT pgsql_fdw_disconnect(name) FROM (SELECT unnest(pgsql_fdw_get_connections()) AS name) AS t;
- pgsql_fdw_disconnect
-----------------------
- OK
- OK
-(2 rows)
-</pre>
 
 <h2 id="seealso">関連項目</h2>
 <h3 id="postgresql_document">PostgreSQLドキュメント</h3>
