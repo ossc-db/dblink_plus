@@ -522,32 +522,18 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 	char		   *endp;
 
 	/*
-	 * If the baserestrictinfo contains any Param node, we can't execute
-	 * EXPLAIN on remote side because we can't get actual argument until
-	 * EXECUTE is invoked, so use costs of seqscan instead.
+	 * If the baserestrictinfo contains any Param node with paramkind
+	 * PARAM_EXTERNAL, we need result of EXPLAIN for EXECUTE statement, not for
+	 * simple SELECT statement.  However, we can't get actual parameter values
+	 * here, so we use fixed and large costs as second best.
 	 */
 	foreach(lc, baserel->baserestrictinfo)
 	{
 		RestrictInfo	   *rs = (RestrictInfo *) lfirst(lc);
 		if (contain_param((Node *) rs->clause))
 		{
-			Path	   *path;
-
-			/* Use estimation of seqscan as second-best. */
-			path = create_seqscan_path(root, baserel);
-			cost_seqscan(path, root, baserel);
-			*startup_cost = path->startup_cost;
-			*total_cost = path->total_cost;
-
-			/* add cost to establish connection. */
-			*startup_cost += CONNECTION_COSTS;
-			*total_cost += CONNECTION_COSTS;
-
-			/* add cost to transfer result. */
-			*total_cost += TRANSFER_COSTS_PER_BYTE *
-						   baserel->width *
-						   baserel->tuples;
-			*total_cost += cpu_tuple_cost * baserel->tuples;
+			*startup_cost = CONNECTION_COSTS;
+			*total_cost = 10000;	/* groundless large costs */
 
 			return;
 		}
