@@ -59,7 +59,7 @@
 <p>PostgreSQL 9.1では外部テーブルは読み取り専用のため、pgsql_fdwで定義した外部テーブルに対する更新(INSERT/UPDATE/DELETE)はエラーとなり実行できません。</p>
 
 <h2 id="install">導入方法</h2>
-<p>pgsql_fdwのインストール方法について説明します。
+<p>pgsql_fdwのインストール方法について説明します。</p>
 <!--
 各インストールパッケージは<a href="https://sourceforge.net/projects/interdbconnect/files/pgsql_fdw">こちら</a>からダウンロードして下さい</p>
 -->
@@ -190,7 +190,7 @@ postgres=#
 postgres=# EXPLAIN SELECT aid, bid, abalance FROM remote_accounts WHERE aid = 1;
                                                                 QUERY PLAN
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on pgbench_accounts  (cost=100.00..108.30 rows=1 width=12)
+ Foreign Scan on remote_accounts  (cost=100.00..108.30 rows=1 width=12)
    Filter: (aid = 1)
    Remote SQL: DECLARE pgsql_fdw_cursor_2 SCROLL CURSOR FOR SELECT aid, bid, abalance, NULL FROM public.pgbench_accounts WHERE (aid = 1)
 (3 rows)
@@ -276,12 +276,10 @@ libpq のオプションについては、「<a href="http://www.postgresql.jp/d
 <a href="http://www.postgresql.jp/document/9.1/html/sql-createforeigntable.html">CREATE FOREIGN TABLE</a>,
 <a href="http://www.postgresql.jp/document/9.1/html/libpq-connect.html">データベース接続制御関数</a>,
 <hr>
-<!--
 <div class="navigation">
-  <a href="http://pgstatsinfo.projects.postgresql.org/index_ja.html">Top</a> &gt;
-  <a href="http://pgstatsinfo.projects.postgresql.org/pg_statsinfo-ja.html">pg_statsinfo</a>
+  <a href="../index.html">Top</a> &gt;
+  <a href="pgsql_fdw-ja.html">pgsql_fdw</a>
 <div>
--->
 <p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
 
 <!--
