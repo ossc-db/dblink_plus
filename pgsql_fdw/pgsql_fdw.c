@@ -428,7 +428,7 @@ pgsqlReScanForeignScan(ForeignScanState *node)
 	res = PQexec(conn, sql);
 	PG_TRY();
 	{
-		if (res == NULL || PQresultStatus(res) != PGRES_COMMAND_OK)
+		if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		{
 			ereport(ERROR,
 					(errmsg("could not rewind cursor"),
@@ -483,7 +483,7 @@ pgsqlEndForeignScan(ForeignScanState *node)
 	res = PQexec(conn, sql);
 	PG_TRY();
 	{
-		if (res == NULL || PQresultStatus(res) != PGRES_COMMAND_OK)
+		if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		{
 			ereport(ERROR,
 					(errmsg("could not close cursor"),
@@ -566,7 +566,7 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 	PG_TRY();
 	{
 		res = PQexec(conn, buf.data);
-		if (res == NULL || PQresultStatus(res) != PGRES_TUPLES_OK)
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 		{
 			char *msg;
 
@@ -700,7 +700,7 @@ execute_query(ForeignScanState *node)
 		 * Connection(s) which are used by this query (at least used by
 		 * pgsql_fdw) will be cleaned up by the foreign connection manager.
 		 */
-		if (res == NULL || PQresultStatus(res) != PGRES_COMMAND_OK)
+		if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		{
 			ereport(ERROR,
 					(errmsg("could not declare cursor"),
@@ -750,7 +750,7 @@ fetch_result(ForeignScanState *node)
 	sql = strVal(list_nth(fdw_private, FdwPrivateFetchSql));
 	conn = festate->conn;
 	res = PQexec(conn, sql);
-	if (res == NULL || PQresultStatus(res) != PGRES_TUPLES_OK)
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		ereport(ERROR,
 				(errmsg("could not fetch rows from foreign server"),

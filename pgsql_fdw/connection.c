@@ -284,7 +284,7 @@ connect_pg_server(ForeignServer *server, UserMapping *user)
 	 * Start transaction to use cursor to retrieve data separately.
 	 */
 	res = PQexec(conn, "BEGIN");
-	if (res == NULL || PQresultStatus(res) != PGRES_COMMAND_OK)
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
 		elog(ERROR, "could not start transaction");
