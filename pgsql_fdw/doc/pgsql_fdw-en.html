@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="EN">
+<head>
+<title>pgsql_fdw</title>
+<link rel="home" title="pgsql_fdw" href="index.html">
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+<h1 id="pgsql_fdw">pgsql_fdw</h1>
+<div class="navigation">
+  <a href="../index-en.html">Top</a> &gt;
+  <a href="pgsql_fdw-en.html">pgsql_fdw</a>
+<div>
+<hr>
+
+<div class="index">
+<ol>
+<li><a href="#name">Name</a></li>
+<li><a href="#description">Description</a></li>
+<li><a href="#install">Install</a>
+<ol>
+  <li><a href="#requirement">Requirement</a></li>
+  <li><a href="#build">Build module</a></li>
+  <li><a href="#create-extension">Create extension</a></li>
+  <li><a href="#uninstall">Uninstall</a></li>
+</ol></li>
+<li><a href="#usage">How to use</a>
+<ol>
+  <li><a href="#create-server">Create server</a></li>
+  <li><a href="#create-user-mapping">Create user mapping</a></li>
+  <li><a href="#create-foreign-table">Create foreign table</a></li>
+  <li><a href="#execute-query">Execute query</a></li>
+  <li><a href="#alter-options">Alter FDW options</a></li>
+  <li><a href="#connections">Connection management</a></li>
+</ol></li>
+<li><a href="#valid-options">Vaild FDW options</a></li>
+<li><a href="#restrictions">Restrictions</a></li>
+<li><a href="#details">Details</a>
+<ol>
+  <li><a href="#connection-option">libpq Options used internally</a></li>
+  <li><a href="#functions">Functions</a></li>
+</ol></li>
+<li><a href="#seealso">See also</a></li>
+</ol>
+</div>
+
+<h2 id="name">Name</h2>
+<p>pgsql_fdw -- A foreign data wrapper fot external PostgreSQL servers.</p>
+<h2 id="description">Description</h2>
+<p>You can create foreign tables which point tables on external PostgreSQL servers.  Then you can use those foreign tables like ordinary local tables in SELECT query to retrieve data from external data.</p>
+<p>pgsql_fdw optimizes remote query to reduce amount of data to be transferred.</p>
+<ul>
+<li>Replace unnecessary column reference with NULL literal.</li>
+<li>Push some of WHERE clause down to remote server.</li>
+</ul>
+<p>Foreign tables are read-only in PostgreSQL 9.1, so modifying foreign tables would cause error.</p>
+
+<h2 id="install">Install</h2>
+<p>This section describes how to install pgsql_fdw.</p>
+<!--
+<p>Install packages are available at <a href="https://sourceforge.net/projects/interdbconnect/files/pgsql_fdw"></p>.
+-->
+
+<h3 id="requirement">Requirement</h3>
+<dl>
+<dt>PostgreSQL</dt><dd>9.1</dd>
+</dl>
+
+<h3 id="build">Build module</h3>
+<p>Source code of PostgreSQL 9.1 or pgxs environment is required to build pgsql_fdw binary module.  Please interpret x.y.z as the version you downloaded.</p>
+
+<h4 id="build-with-source">Building with source code</h4>
+<p>You need to extract source files of pgsql_fdw down to contrib directory of PostgreSQL which has already been built, and invoke make command.</p>
+<pre>
+$ cd postgresql-9.1.x
+$ ./configure
+$ make
+$ cd contrib
+$ tar zxvf pgsql_fdw-x.y.z.tar.gz
+$ cd pgsql_fdw-x.y.z
+$ make
+$ sudo make install 
+</pre>
+
+<h4 id="build-with-pgxs">Building with pgxs</h4>
+<p>You need to set USE_PGXS shell variable to build and install.</p>
+<pre>
+$ tar xzvf pgsql_fdw-x.y.z.tar.gz
+$ cd pgsql_fdw
+$ make USE_PGXS=1
+$ sudo make USE_PGXS=1 install
+</pre>
+
+<h3 id="create-extension">Create extension</h3>
+<p>pgsql_fdw conforms EXTENSION mechanism, which was introduced in PostgreSQL 9.1, so just need to invoke CREATE EXTENSION command to install pgsql_fdw to your database.   You don't need to execute SQL script which has been installed into extension directory of your PostgreSQL installation.  It's contrib modules style.  To create pgsql_fdw extension, you need to be a superuser.</p>
+<pre>
+$ psql
+postgres=# CREATE EXTENSION pgsql_fdw;
+CREATE EXTENSION
+postgres=# \dew
+                 List of foreign-data wrappers
+   Name    |  Owner   |      Handler      |      Validator
+-----------+----------+-------------------+---------------------
+ pgsql_fdw | postgres | pgsql_fdw_handler | pgsql_fdw_validator
+(1 row)
+
+postgres=#
+</pre>
+
+<h3 id="uninstall">Uninstall</h3>
+<p>Executing DROP EXTENSION is the only thing you need to do to uninstall pgsql_fdw.  If some objects which were created with pgsql_fdw exist, you need to drop them first, or use CASCADE option of DROP EXTENSION statement.</p>
+<p>Following example shows how to drop pgsql_fdw extension and some related objects: a server, a user mapping and four foreign tables.</p>
+<pre>
+postgres=# drop EXTENSION pgsql_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server remote_db
+drop cascades to user mapping for public
+drop cascades to foreign table remote_accounts
+drop cascades to foreign table remote_branches
+drop cascades to foreign table remote_tellers
+drop cascades to foreign table remote_history
+DROP EXTENSION
+postgres=#
+</pre>
+
+<h2 id="usage">How to use</h2>
+<p>Here you see how to retrieve data on an external PostgreSQL server.  This is just a sample, so please replace connection information and table definition to fit your environment.</p>
+
+<h3 id="create-server">Create server</h3>
+
+<p>First of all, become a superuser and execute CREATE SERVER command to create a server object which points target server.  You can specify hostname, port number and database name of the external server here.</p>
+<pre>
+postgres=# CREATE SERVER remote_db FOREIGN DATA WRAPPER pgsql_fdw
+postgres-# OPTIONS (host 'hostname', port '5432', dbname 'remote');
+CREATE SERVER
+postgres=#
+</pre>
+
+<h3 id="create-user-mapping">Create user mapping</h3>
+
+<p>Execute CREATE USER MAPPING command to create a user mapping object which links server and local user.  Here you can specify username and password of external database user.  Superuser privilege is required to this.</p>
+<pre>
+postgres=# CREATE USER MAPPING FOR postgres SERVER remote_db
+postgres-# OPTIONS (user 'postgres', password 'secret');
+CREATE USER MAPPING
+postgres=#
+</pre>
+<p>User mapping for "public" is used for local users who don't have explicit user mapping.</p>
+<pre>
+postgres=# CREATE USER MAPPING FOR public SERVER remote_db
+postgres-# OPTIONS (user 'app_user', password 'secret');
+CREATE USER MAPPING
+postgres=#
+</pre>
+
+<h3 id="create-foreign-table">Create foreign table</h3>
+
+<p>Execute CREATE FOREIGN TABLE command to define a foreign table which points an external table.  The syntax of CREATE FOREIGN TABLE is basically similar to syntax of CREATE TABLE, except that you need to specify server name.  You can specify schema name and/or table name of external table as FDW option.  Following example shows how to define a foreign table "remote_accounts", which points an external table "public.pgbench_accounts" on a server "remote_db".</p>
+<pre>
+postgres=# CREATE FOREIGN TABLE remote_accounts (
+postgres(# aid integer,
+postgres(# bid integer,
+postgres(# abalance integer,
+postgres(# filler char(84))
+postgres(# SERVER remote_db
+postgres(# OPTIONS (nspname 'public', relname 'pgbench_accounts');
+CREATE FOREIGN TABLE
+postgres=#
+</pre>
+
+<h3 id="execute-query">Execute query</h3>
+<p>Now you can get external data by executing usual SELECT statement against foreign tables.  You can execute any SELECT against foreign tables, but can't modify external data via foreign table.</p>
+<pre>
+postgres=# SELECT aid, bid, abalance FROM remote_accounts WHERE aid = 1;
+ aid | bid | abalance
+-----+-----+----------
+   1 |   1 |        0
+(1 row)
+
+postgres=#
+</pre>
+<p>Owner of a foreign table can allow other users to use the foreign table by executing GRANT statement, like ordinary tables.</p>
+
+<p>EXPLAIN command shows actual query which is sent to external server for each foreign table.  Following example shows a plan tree which is used to retrieve data from external table "pgbench_accounts" via a foreign table "remote_accounts".</p>
+<pre>
+postgres=# EXPLAIN SELECT aid, bid, abalance FROM remote_accounts WHERE aid = 1;
+                                                                QUERY PLAN
+------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on remote_accounts  (cost=100.00..108.30 rows=1 width=12)
+   Filter: (aid = 1)
+   Remote SQL: DECLARE pgsql_fdw_cursor_2 SCROLL CURSOR FOR SELECT aid, bid, abalance, NULL FROM public.pgbench_accounts WHERE (aid = 1)
+(3 rows)
+</pre>
+
+<h3 id="alter-options">Alter FDW options</h3>
+
+<p>You can change value of FDW options with ALTER statement.  Following example shows how to change remote user's password.  Note that SET is required to change value of existing option.</p>
+<pre>
+postgres=# ALTER USER MAPPING FOR postgres SERVER remote_db
+postgres-# OPTIONS (SET password 'more secret');
+ALTER USER MAPPING
+postgres=#
+</pre>
+
+<h3 id="connections">Connection management</h3>
+<p>pgsql_fdw establishes a connection in the first query which uses a foreign table on a foreign server.  Established connection is reused by following queries, and even by following scans in same query, during local session.  In other words, only one connection is established against a foreign server until you switch local user.  You can see active connections via pgsql_fdw_connections view.</p>
+<pre>
+postgres=# select * from pgsql_fdw_connections;
+ srvid |    srvname     | usesysid | usename
+-------+----------------+----------+----------
+ 16530 | remote_pgbench |       10 | postgres
+(1 row)
+</pre>
+<p>You can discard any active connection anytime by invoking pgsql_fdw_disconnect() with server oid and local user oid.  You can discard all active connections with following query:</p>
+<pre>
+postgres=# SELECT pgsql_fdw_disconnect(srvid, usesysid) FROM pgsql_fdw_connections;
+ pgsql_fdw_disconnect
+----------------------
+ OK
+ OK
+(2 rows)
+</pre>
+<p>When local transaction aborts, pgsql_fdw discards all active connections automatically.  This would prevent connection leak occurs with unexpected error.  Connection will be established again automatically when a foreign server was accessed later.</p>
+
+<h2 id="valid-options">Vaild FDW options</h2>
+<p>pgsql_fdw retrieves various information required for a query against a foreign table from FDW options of objects which are related to the foreign table.</p>
+<h3>Connection options</h3>
+<p>All libpq options except following can be used as connection opions. Only "user" and "password" are fore user mappings, and others are for foreign servers.</p>
+<ul>
+<li>client_encoding</li>
+<li>fallback_application_name</li>
+<li>replication</li>
+</ul>
+
+<p>See <a href="http://www.postgresql.org/docs/9.1/static/libpq-connect.html">Database Connection Control Functions</a> for details of libpq options.  Note that omitted options are taken from environment variables of the user who started PostgreSQL server.
+Invalid options would be caught at once, but omission of required parameters and wrong values will be found when query was executed actually.</p>
+
+<h3>Object name optionsl</h3>
+<p>You can specify name and/or schema of external table as FDW options of a foreign table, "relname" and "nspname".  They default to foreign table's name ans schema respectively.</p>
+
+<h3>Cursor option</h3>
+<p>With a FDW option "fetch_count", you can control the behavior of cursor used internally.  It is used as number of rows fetched from external server at a time, and defualt to 10000.  This option can be specified to foreign table and/or foreign server.  If both of them has value, foreign table's setting is used.</p>
+
+<h2 id="restrictions">Restrictions</h2>
+<p>There are some restrictions to use pgsql_fdw.</p>
+
+<dl>
+<dt>Foreign tables are read-only</dt>
+<dd>Foreign tables are read-only for specification of PostgreSQL, so DMLs other than SELECT fail with error.  In addition, VACUUM and ANALYZE don't handle foreign tables.  Please connect external server directly to execute this kind of commands to external tables.</dd>
+
+<dt>Management of connection and transaction</dt>
+<dd>A connection is shared between scans which access same foreign server even those scans are in a local query, and pgsql_fdw starts a transaction only at the beginning of a connection.  As a result, multiple scans in a local query might have inconsistent result from the viewpoint of transaction.</dd>
+</dl>
+
+<h2 id="details">Details</h2>
+<p>This section describes advanced usage and internal details.</p>
+
+<h3 id="connection-option">Internal use of libpq options</h3>
+<p>Some of libpq options are used internally.  "client_encoding" is set to local encoding to retrieve external data properly.  "fallback_application_name" is set to "pgsql_fdw" to allow remote DBAs to know originator of connections via pg_stat_activity and server log.</p>
+
+<h3 id="functions">Functions</h3>
+<p>This extension provides pgsql_fdw_validator as a valiidator, and pgsql_fdw_handler as a handler.  These are created automatically during CREATE EXTENSION statement.</p>
+
+<h2 id="seealso">See also</h2>
+<h3 id="postgresql_document">PostgreSQL Documents</h3>
+<a href="http://www.postgresql.org/docs/9.1/static/ddl-foreign-data.html">Foreign Data</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createforeigndatawrapper.html">CREATE FOREIGN DATA WRAPPER</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createserver.html">CREATE SERVER</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createusermapping.html">CREATE USER MAPPING</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createforeigntable.html">CREATE FOREIGN TABLE</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/libpq-connect.html">Database Connection Control Functions</a>,
+<hr>
+<div class="navigation">
+  <a href="../index-en.html">Top</a> &gt;
+  <a href="pgsql_fdw-en.html">pgsql_fdw</a>
+<div>
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</div></div></div></div></body></html>
+
