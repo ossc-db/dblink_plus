@@ -9,6 +9,7 @@ fi
 USERNAME=$1
 
 rsync -avz index.html $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/index.html
+rsync -avz index-en.html $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/index-en.html
 rsync -avz style.css $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/style.css
 rsync -avz ../syncdb/doc/ $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/syncdb/
 rsync -avz ../dblink_plus/doc/ $USERNAME@web.sourceforge.net:/home/project-web/interdbconnect/htdocs/dblink_plus/
