@@ -17,7 +17,9 @@ CREATE FOREIGN TABLE ft1 (
 	c2 int NOT NULL,
 	c3 text,
 	c4 timestamptz,
-	c5 timestamp
+	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10)
 ) SERVER loopback2;
 
 CREATE FOREIGN TABLE ft2 (
@@ -25,7 +27,9 @@ CREATE FOREIGN TABLE ft2 (
 	c2 int NOT NULL,
 	c3 text,
 	c4 timestamptz,
-	c5 timestamp
+	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10)
 ) SERVER loopback2;
 
 -- ===================================================================
@@ -38,6 +42,8 @@ CREATE TABLE "S 1"."T 1" (
 	c3 text,
 	c4 timestamptz,
 	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10),
 	CONSTRAINT t1_pkey PRIMARY KEY (c1)
 );
 CREATE TABLE "S 1"."T 2" (
@@ -53,7 +59,9 @@ INSERT INTO "S 1"."T 1"
 	       id % 10,
 	       to_char(id, 'FM00000'),
 	       '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
-	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval
+	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
+	       id % 10,
+	       id % 10
 	FROM generate_series(1, 1000) id;
 TRUNCATE "S 1"."T 2";
 INSERT INTO "S 1"."T 2"
@@ -121,7 +129,8 @@ SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
 EXPLAIN (VERBOSE, COSTS false) SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
 SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
 -- with WHERE clause
-SELECT * FROM ft1 t1 WHERE t1.c1 = 101;
+EXPLAIN (VERBOSE, COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 = '1';
+SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 = '1';
 -- aggregate
 SELECT COUNT(*) FROM ft1 t1;
 -- join two tables

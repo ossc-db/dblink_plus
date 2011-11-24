@@ -140,7 +140,7 @@ deparseSql(Oid relid, PlannerInfo *root, RelOptInfo *baserel)
 			/*
 			 * Create new list of column names which is used to deparse remote
 			 * query from specified names or local column names.  This list is
-			 * used by deparse_expression.
+			 * used by deparse_expression_pg.
 			 */
 			for (attr = 1; attr <= baserel->max_attr; attr++)
 			{
@@ -195,7 +195,7 @@ deparseSql(Oid relid, PlannerInfo *root, RelOptInfo *baserel)
 		}
 		if (var != NULL)
 			appendStringInfo(&sql, "%s",
-				deparse_expression((Node *) var, context, false, false));
+				deparse_expression_pg((Node *) var, context, false, false));
 		else
 			appendStringInfo(&sql, "NULL");
 	}
@@ -215,7 +215,7 @@ deparseSql(Oid relid, PlannerInfo *root, RelOptInfo *baserel)
 
 		node = (Node *) make_ands_explicit(foreign_expr);
 		appendStringInfo(&sql, " WHERE %s ",
-			deparse_expression(node, context, false, false));
+			deparse_expression_pg(node, context, false, false));
 		list_free(foreign_expr);
 		foreign_expr = NIL;
 	}
@@ -272,6 +272,7 @@ foreign_expr_walker(Node *node, foreign_executable_cxt *context)
 		case T_NullTest:
 		case T_DistinctExpr:
 		case T_ScalarArrayOpExpr:
+		case T_RelabelType:
 			/*
 			 * These type of nodes are known as safe to be pushed down.
 			 * Of course the subtree of the node, if any, should be checked
