@@ -296,6 +296,53 @@ SELECT 'fixed', NULL FROM ft1 t1 WHERE c1 = 1;
  fixed    | 
 (1 row)
 
+-- user-defined operator/function
+CREATE FUNCTION pgsql_fdw_abs(int) RETURNS int AS $$
+BEGIN
+RETURN abs($1);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+CREATE OPERATOR === (
+    LEFTARG = int,
+    RIGHTARG = int,
+    PROCEDURE = int4eq,
+    COMMUTATOR = ===,
+    NEGATOR = !==
+);
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = pgsql_fdw_abs(t1.c2);
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Foreign Scan on ft1 t1
+   Filter: (c1 = pgsql_fdw_abs(c2))
+   Remote SQL: DECLARE pgsql_fdw_cursor_18 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1"
+(3 rows)
+
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Foreign Scan on ft1 t1
+   Filter: (c1 === c2)
+   Remote SQL: DECLARE pgsql_fdw_cursor_19 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1"
+(3 rows)
+
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on ft1 t1
+   Filter: (c1 = abs(c2))
+   Remote SQL: DECLARE pgsql_fdw_cursor_20 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 = abs(c2)) 
+(3 rows)
+
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = t1.c2;
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on ft1 t1
+   Filter: (c1 = c2)
+   Remote SQL: DECLARE pgsql_fdw_cursor_21 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 = c2) 
+(3 rows)
+
+DROP OPERATOR === (int, int) CASCADE;
+DROP FUNCTION pgsql_fdw_abs(int);
 -- ===================================================================
 -- parameterized queries
 -- ===================================================================
@@ -307,11 +354,11 @@ EXPLAIN (COSTS false) EXECUTE st1(1, 2);
  Nested Loop
    ->  Foreign Scan on ft1 t1
          Filter: (c1 = $1)
-         Remote SQL: DECLARE pgsql_fdw_cursor_18 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
+         Remote SQL: DECLARE pgsql_fdw_cursor_22 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
    ->  Materialize
          ->  Foreign Scan on ft2 t2
                Filter: (c1 = $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_19 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $2) 
+               Remote SQL: DECLARE pgsql_fdw_cursor_23 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $2) 
 (8 rows)
 
 EXECUTE st1(1, 1);
@@ -338,10 +385,10 @@ EXPLAIN (COSTS false) EXECUTE st2(10, 20);
          ->  HashAggregate
                ->  Foreign Scan on ft2 t2
                      Filter: ((c1 > $1) AND (date_part('dow'::text, c4) = 6::double precision))
-                     Remote SQL: DECLARE pgsql_fdw_cursor_21 SCROLL CURSOR FOR SELECT c1, NULL, c3, c4, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 > $1) 
+                     Remote SQL: DECLARE pgsql_fdw_cursor_25 SCROLL CURSOR FOR SELECT c1, NULL, c3, c4, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 > $1) 
          ->  Foreign Scan on ft1 t1
                Filter: (c1 < $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_20 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
+               Remote SQL: DECLARE pgsql_fdw_cursor_24 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
 (11 rows)
 
 EXECUTE st2(10, 20);
@@ -368,10 +415,10 @@ EXPLAIN (COSTS false) EXECUTE st3(10, 20);
          ->  HashAggregate
                ->  Foreign Scan on ft2 t2
                      Filter: ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision))
-                     Remote SQL: DECLARE pgsql_fdw_cursor_23 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, c5, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision)) 
+                     Remote SQL: DECLARE pgsql_fdw_cursor_27 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, c5, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision)) 
          ->  Foreign Scan on ft1 t1
                Filter: (c1 < $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_22 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
+               Remote SQL: DECLARE pgsql_fdw_cursor_26 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
 (11 rows)
 
 EXECUTE st3(10, 20);
@@ -393,7 +440,7 @@ EXPLAIN (COSTS true) EXECUTE st4(1);
 ---------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on ft1 t1  (cost=100.00..10000.00 rows=1000 width=0)
    Filter: (c1 = $1)
-   Remote SQL: DECLARE pgsql_fdw_cursor_24 SCROLL CURSOR FOR SELECT c1, NULL, NULL, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
+   Remote SQL: DECLARE pgsql_fdw_cursor_28 SCROLL CURSOR FOR SELECT c1, NULL, NULL, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
 (3 rows)
 
 -- cleanup

@@ -37,7 +37,7 @@ typedef struct foreign_executable_cxt
 
 static bool is_foreign_expr(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 static bool foreign_expr_walker(Node *node, foreign_executable_cxt *context);
-static bool is_proc_remotely_executable(Oid procid);
+static bool is_builtin(Oid procid);
 
 /*
  * Deparse query representation into SQL statement which suits for remote
@@ -271,7 +271,6 @@ foreign_expr_walker(Node *node, foreign_executable_cxt *context)
 		case T_BoolExpr:
 		case T_NullTest:
 		case T_DistinctExpr:
-		case T_ScalarArrayOpExpr:
 		case T_RelabelType:
 			/*
 			 * These type of nodes are known as safe to be pushed down.
@@ -288,14 +287,33 @@ foreign_expr_walker(Node *node, foreign_executable_cxt *context)
 					return true;
 			}
 			break;
+		case T_ScalarArrayOpExpr:
+			/*
+			 * Only built-in operators can be pushed down.  In addition,
+			 * underlying function must be built-in and immutable, but we don't
+			 * check volatility here; such check must be done already with
+			 * contain_mutable_functions.
+			 */
+			{
+				ScalarArrayOpExpr   *oe = (ScalarArrayOpExpr *) node;
+
+				if (!is_builtin(oe->opno) || !is_builtin(oe->opfuncid))
+					return true;
+
+				/* operands are checked later */
+			}
+			break;
 		case T_OpExpr:
 			/*
-			 * Operators which use non-immutable function can't be pushed down.
+			 * Only built-in operators can be pushed down.  In addition,
+			 * underlying function must be built-in and immutable, but we don't
+			 * check volatility here; such check must be done already with
+			 * contain_mutable_functions.
 			 */
 			{
 				OpExpr	   *oe = (OpExpr *) node;
 
-				if (!is_proc_remotely_executable(oe->opfuncid))
+				if (!is_builtin(oe->opno) || !is_builtin(oe->opfuncid))
 					return true;
 
 				/* operands are checked later */
@@ -303,12 +321,14 @@ foreign_expr_walker(Node *node, foreign_executable_cxt *context)
 			break;
 		case T_FuncExpr:
 			/*
-			 * Non-immutable functions can't be pushed down.
+			 * Only built-in functions can be pushed down.  In addition,
+			 * functions must be immutable, but we don't check volatility here;
+			 * such check must be done already with contain_mutable_functions.
 			 */
 			{
 				FuncExpr   *fe = (FuncExpr *) node;
 
-				if (!is_proc_remotely_executable(fe->funcid))
+				if (!is_builtin(fe->funcid))
 					return true;
 
 				/* operands are checked later */
@@ -343,18 +363,11 @@ foreign_expr_walker(Node *node, foreign_executable_cxt *context)
 }
 
 /*
- * Return true if func is known as safe to be pushed down if all of the
- * arguments are also known as safe.
+ * Return true if given object is one of built-in objects.
  */
 static bool
-is_proc_remotely_executable(Oid procid)
+is_builtin(Oid oid)
 {
-	/*
-	 * User-defined procedures can't be pushed down.
-	 */
-	if (procid >= FirstNormalObjectId)
-		return false;
-
-	return true;
+	return (oid < FirstNormalObjectId);
 }
 

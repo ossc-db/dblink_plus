@@ -143,6 +143,25 @@ SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
 -- fixed values
 SELECT 'fixed', NULL FROM ft1 t1 WHERE c1 = 1;
+-- user-defined operator/function
+CREATE FUNCTION pgsql_fdw_abs(int) RETURNS int AS $$
+BEGIN
+RETURN abs($1);
+END
+$$ LANGUAGE plpgsql IMMUTABLE;
+CREATE OPERATOR === (
+    LEFTARG = int,
+    RIGHTARG = int,
+    PROCEDURE = int4eq,
+    COMMUTATOR = ===,
+    NEGATOR = !==
+);
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = pgsql_fdw_abs(t1.c2);
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2;
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
+EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = t1.c2;
+DROP OPERATOR === (int, int) CASCADE;
+DROP FUNCTION pgsql_fdw_abs(int);
 
 -- ===================================================================
 -- parameterized queries

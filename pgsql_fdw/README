@@ -123,12 +123,14 @@ Some kind of query can be optimized by pgsql_fdw.
        be sent and evaluated on remote side.  Expressions can be sent are:
             * constant value
             * array, if every elements suit these rules recursively
-            * stable functions, if every arguments suit these rules recursively
-            * operators implemented with stable functions
+            * immutable built-in functions, if every arguments suit these rules
+              recursively
+            * built-in operators implemented with immutable functions, if every
+              operands suit these rules recursively
             * Boolean expressions such as AND, OR and NOT
             * x IS NULL and x IS NOT NULL
             * x IS DISTINCT FROM y
-            * scalar op ANY/ALL (array), if op is stable
+            * scalar op ANY/ALL (array), if op is immutable and built-in
             * argument of EXECUTE statement
             * reference to the column of the foreign table
 
