@@ -181,7 +181,7 @@ pgsql_fdw_validator(PG_FUNCTION_ARGS)
 
 	/*
 	 * We don't care option-specific limitation here; they will be validated at
-	 * the execution time. 
+	 * the execution time.
 	 */
 
 	PG_RETURN_VOID();

@@ -126,7 +126,7 @@ deparseSql(Oid relid, PlannerInfo *root, RelOptInfo *baserel)
 	/*
 	 * We need to replace aliasname and colnames of the target relation so that
 	 * constructed remote query is valid.
-	 * 
+	 *
 	 * Note that we skip first empty element of simple_rel_array.  See also
 	 * comments of simple_rel_array and simple_rte_array for the rationale.
 	 */

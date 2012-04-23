@@ -310,7 +310,7 @@ ReleaseConnection(PGconn *conn)
 	/*
 	 * We need to scan sequentially since we use the address to find appropriate
 	 * PGconn from the hash table.
-	 */ 
+	 */
 	hash_seq_init(&scan, FSConnectionHash);
 	while ((entry = (ConnCacheEntry *) hash_seq_search(&scan)))
 	{
@@ -366,7 +366,7 @@ cleanup_connection(ResourceReleasePhase phase,
 
 	/*
 	 * We ignore cleanup for ResourceOwners other than transaction.  At this
-	 * point, such a ResourceOwner is only Portal. 
+	 * point, such a ResourceOwner is only Portal.
 	 */
 	if (CurrentResourceOwner != CurTransactionResourceOwner)
 		return;
@@ -428,7 +428,7 @@ pgsql_fdw_get_connections(PG_FUNCTION_ARGS)
 	/*
 	 * We need to scan sequentially since we use the address to find
 	 * appropriate PGconn from the hash table.
-	 */ 
+	 */
 	if (FSConnectionHash != NULL)
 	{
 		hash_seq_init(&scan, FSConnectionHash);

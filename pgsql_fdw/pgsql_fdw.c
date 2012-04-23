@@ -74,7 +74,7 @@ enum FdwPrivateIndex {
 
 /*
  * Describes an execution state of a foreign scan against a foreign table
- * using pgsql_fdw. 
+ * using pgsql_fdw.
  */
 typedef struct PgsqlFdwExecutionState
 {
@@ -195,7 +195,7 @@ pgsqlPlanForeignScan(Oid foreigntableid,
 	 * 1) plain SELECT statement (already added above)
 	 * 2) SQL statement used to declare cursor
 	 * 3) SQL statement used to fetch rows from cursor
-	 * 4) SQL statement used to reset cursor 
+	 * 4) SQL statement used to reset cursor
 	 * 5) SQL statement used to close cursor
 	 *
 	 * These items are indexed with the enum FdwPrivateIndex, so an item
