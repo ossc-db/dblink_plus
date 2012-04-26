@@ -191,6 +191,17 @@ DEALLOCATE st3;
 DEALLOCATE st4;
 
 -- ===================================================================
+-- cursor
+-- ===================================================================
+BEGIN;
+DECLARE cur1 CURSOR FOR SELECT c1 FROM ft1 t1 ORDER BY c1;
+FETCH cur1;
+FETCH cur1;
+FETCH cur1;
+CLOSE cur1;
+COMMIT;
+
+-- ===================================================================
 -- connection management
 -- ===================================================================
 SELECT srvname, usename FROM pgsql_fdw_connections;
