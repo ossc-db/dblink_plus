@@ -372,8 +372,15 @@ cleanup_connection(ResourceReleasePhase phase,
 		return;
 
 	/*
-	 * We don't care whether we are in TopTransaction or Subtransaction.
-	 * Anyway, we close the connection and reset the reference counter.
+	 * We don't need cleanup at the end of subtransactions, because they might
+	 * be recovered to consistent state with savepoints.
+	 */
+	if (!isTopLevel)
+		return;
+
+	/*
+	 * Here, it must be after abort of top level transaction.  Disconnect and
+	 * forget every referrer.
 	 */
 	if (entry->conn != NULL)
 	{

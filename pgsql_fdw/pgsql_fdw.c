@@ -256,6 +256,7 @@ static void
 pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 {
 	PgsqlFdwExecutionState *festate;
+	MemoryContext	oldcontext;
 	PGconn		   *conn;
 	Oid				relid;
 	ForeignTable   *table;
@@ -286,8 +287,19 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	conn = GetConnection(server, user);
 	festate->conn = conn;
 
-	/* Result will be filled in first Iterate call. */
-	festate->tuples = NULL;
+	/*
+	 * Create tuplestore in current transaction context in order to ensure that
+	 * contents are valid until the end of this scan.  It might seem that
+	 * transaction context is too long, but result rows must be available even
+	 * after the end of current message. We need to do this here, because first
+	 * Iterate might be called after SAVEPOINT; rolling-back to such SAVEPOINT
+	 * might cause unexpected release of tuplestore.
+	 *
+	 * Result will be filled in first Iterate call.
+	 */
+	oldcontext = MemoryContextSwitchTo(CurTransactionContext);
+	festate->tuples = tuplestore_begin_heap(false, false, work_mem);
+	MemoryContextSwitchTo(oldcontext);
 	festate->cursor_opened = false;
 
 	/* Allocate buffers for column values. */
@@ -342,13 +354,10 @@ pgsqlIterateForeignScan(ForeignScanState *node)
 
 	festate = (PgsqlFdwExecutionState *) node->fdw_state;
 
-
 	/*
 	 * If this is the first call after Begin, we need to execute remote query.
-	 * If the query needs cursor, we declare a cursor at first call and fetch
-	 * from it in later calls.
 	 */
-	if (festate->tuples == NULL && !festate->cursor_opened)
+	if (!festate->cursor_opened)
 		execute_query(node);
 
 	/*
@@ -768,28 +777,8 @@ store_result(ForeignScanState *node, PGresult *res)
 	nfields = PQnfields(res);
 	attrs = tupdesc->attrs;
 
-	/* First, ensure that the tuplestore is empty. */
-	if (festate->tuples == NULL)
-	{
-		MemoryContext	oldcontext = CurrentMemoryContext;
-
-		/*
-		 * Create tuplestore in current-transaction context to ensure that its
-		 * contents valid until the end of this scan.  The current transaction
-		 * context might seem too long life time, but results must be also
-		 * available even current message has processed, for cases such as
-		 * access via CURSOR.
-		 */
-		MemoryContextSwitchTo(CurTransactionContext);
-		festate->tuples = tuplestore_begin_heap(false, false, work_mem);
-		MemoryContextSwitchTo(oldcontext);
-	}
-	else
-	{
-		/* We already have tuplestore, just need to clear contents of it. */
-		tuplestore_clear(festate->tuples);
-	}
-	
+	/* First, make the tuplestore empty. */
+	tuplestore_clear(festate->tuples);
 
 	/* count non-dropped columns */
 	for (attnum = 0, i = 0; i < tupdesc->natts; i++)

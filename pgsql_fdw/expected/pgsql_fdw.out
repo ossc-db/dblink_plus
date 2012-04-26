@@ -465,10 +465,22 @@ FETCH cur1;
   2
 (1 row)
 
+SAVEPOINT s1;
 FETCH cur1;
  c1 
 ----
   3
+(1 row)
+
+ERROR OUT;  -- ERROR
+ERROR:  syntax error at or near "ERROR"
+LINE 1: ERROR OUT;
+        ^
+ROLLBACK TO s1;
+FETCH cur1;
+ c1 
+----
+  4
 (1 row)
 
 CLOSE cur1;
