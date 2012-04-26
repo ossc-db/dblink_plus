@@ -774,11 +774,13 @@ store_result(ForeignScanState *node, PGresult *res)
 		MemoryContext	oldcontext = CurrentMemoryContext;
 
 		/*
-		 * Create tuplestore to store result of the query in per-query context.
-		 * Note that we use this memory context to avoid memory leak in error
-		 * cases.
+		 * Create tuplestore in current-transaction context to ensure that its
+		 * contents valid until the end of this scan.  The current transaction
+		 * context might seem too long life time, but results must be also
+		 * available even current message has processed, for cases such as
+		 * access via CURSOR.
 		 */
-		MemoryContextSwitchTo(MessageContext);
+		MemoryContextSwitchTo(CurTransactionContext);
 		festate->tuples = tuplestore_begin_heap(false, false, work_mem);
 		MemoryContextSwitchTo(oldcontext);
 	}
