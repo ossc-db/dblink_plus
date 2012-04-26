@@ -3,7 +3,7 @@
  * option.c
  *		  FDW option handling
  *
- * Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2012, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  *
  * IDENTIFICATION
  *		  pgsql_fdw/option.c

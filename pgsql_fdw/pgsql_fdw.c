@@ -3,7 +3,7 @@
  * pgsql_fdw.c
  *		  foreign-data wrapper for remote PostgreSQL servers.
  *
- * Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2012, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  *
  * IDENTIFICATION
  *		  pgsql_fdw/pgsql_fdw.c
