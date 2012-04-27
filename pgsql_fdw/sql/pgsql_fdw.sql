@@ -74,8 +74,6 @@ COMMIT;
 -- tests for pgsql_fdw_validator
 -- ===================================================================
 ALTER FOREIGN DATA WRAPPER pgsql_fdw OPTIONS (host 'value');    -- ERROR
--- requiressl, krbsrvname and gsslib are omitted because they depend on
--- configure option
 ALTER SERVER loopback1 OPTIONS (
 	authtype 'value',
 	service 'value',
@@ -92,15 +90,15 @@ ALTER SERVER loopback1 OPTIONS (
 	keepalives 'value',
 	keepalives_idle 'value',
 	keepalives_interval 'value',
-	-- requiressl 'value',
+	requiressl 'value',
 	sslmode 'value',
 	sslcert 'value',
 	sslkey 'value',
 	sslrootcert 'value',
-	sslcrl 'value'
-	--requirepeer 'value',
-	-- krbsrvname 'value',
-	-- gsslib 'value',
+	sslcrl 'value',
+	requirepeer 'value',
+	krbsrvname 'value',
+	gsslib 'value'
 	--replication 'value'
 );
 ALTER SERVER loopback1 OPTIONS (user 'value');                  -- ERROR

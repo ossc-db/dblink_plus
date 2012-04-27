@@ -77,21 +77,15 @@ static PgsqlFdwOption valid_options[] = {
 	{"keepalives_idle", ForeignServerRelationId, true},
 	{"keepalives_interval", ForeignServerRelationId, true},
 	{"keepalives_count", ForeignServerRelationId, true},
-#ifdef USE_SSL
 	{"requiressl", ForeignServerRelationId, true},
-#endif
 	{"sslmode", ForeignServerRelationId, true},
 	{"sslcert", ForeignServerRelationId, true},
 	{"sslkey", ForeignServerRelationId, true},
 	{"sslrootcert", ForeignServerRelationId, true},
 	{"sslcrl", ForeignServerRelationId, true},
 	{"requirepeer", ForeignServerRelationId, true},
-#if defined(KRB5) || defined(ENABLE_GSS) || defined(ENABLE_SSPI)
 	{"krbsrvname", ForeignServerRelationId, true},
-#endif
-#if defined(ENABLE_GSS) && defined(ENABLE_SSPI)
 	{"gsslib", ForeignServerRelationId, true},
-#endif
 #ifdef NOT_USED
 	{"replication", ForeignServerRelationId, true},
 #endif
