@@ -528,7 +528,7 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 	StringInfoData  buf;
 	char		   *plan;
 	char		   *p;
-	char		   *endp;
+	int				n;
 
 	/*
 	 * If the baserestrictinfo contains any Param node with paramkind
@@ -556,7 +556,7 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 	user = GetUserMapping(GetOuterUserId(), server->serverid);
 	conn = GetConnection(server, user);
 	initStringInfo(&buf);
-	appendStringInfo(&buf, "EXPLAIN (FORMAT YAML) %s", sql);
+	appendStringInfo(&buf, "EXPLAIN %s", sql);
 
 	PG_TRY();
 	{
@@ -572,6 +572,15 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 					 errhint("%s", sql)));
 		}
 		plan = pstrdup(PQgetvalue(res, 0, 0));
+		p = strrchr(plan, '(');
+		if (p == NULL)
+			elog(ERROR, "wrong EXPLAIN output: %s", plan);
+		n = sscanf(p,
+				   "(cost=%lf..%lf rows=%lf width=%d)",
+				   startup_cost, total_cost, &baserel->rows, &baserel->width);
+		if (n != 4)
+			elog(ERROR, "could not get estimation from EXPLAIN output");
+
 		PQclear(res);
 		res = NULL;
 		ReleaseConnection(conn);
@@ -582,46 +591,6 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
-
-	/* extract startup cost from remote plan */
-	p = strstr(plan, "Startup Cost: ");
-	if (p != NULL)
-	{
-		p += strlen("Startup Cost: ");
-		*startup_cost = strtod(p, &endp);
-		if (*endp != '\n' && *endp != '\0')
-			elog(ERROR, "invalid plan format for startup cost%c", *endp);
-	}
-
-	/* extract total cost from remote plan */
-	p = strstr(plan, "Total Cost: ");
-	if (p != NULL)
-	{
-		p += strlen("Total Cost: ");
-		*total_cost = strtod(p, &endp);
-		if (*endp != '\n' && *endp != '\0')
-			elog(ERROR, "invalid plan format for total cost");
-	}
-
-	/* extract # of rows from remote plan */
-	p = strstr(plan, "Plan Rows: ");
-	if (p != NULL)
-	{
-		p += strlen("Plan Rows: ");
-		baserel->rows = strtod(p, &endp);
-		if (*endp != '\n' && *endp != '\0')
-			elog(ERROR, "invalid plan format for plan rows");
-	}
-
-	/* extract average width from remote plan */
-	p = strstr(plan, "Plan Width: ");
-	if (p != NULL)
-	{
-		p += strlen("Plan Width: ");
-		baserel->width = strtol(p, &endp, 10);
-		if (*endp != '\n' && *endp != '\0')
-			elog(ERROR, "invalid plan format for plan width");
-	}
 
 	/* TODO Selectivity of quals pushed down should be considered. */
 
