@@ -79,15 +79,19 @@ enum FdwPrivateIndex {
 typedef struct PgsqlFdwExecutionState
 {
 	FdwPlan	   *fdwplan;		/* FDW-specific planning information */
-	PGconn	   *conn;			/* connection for the scan */
 
+	/* for remote query execution */
+	PGconn	   *conn;			/* connection for the scan */
 	Oid		   *param_types;	/* type array of external parameter */
 	const char **param_values;	/* value array of external parameter */
 
-	int			attnum;			/* # of non-dropped attribute */
+	/* for tuple generation */
+	AttrNumber	attnum;			/* # of non-dropped attribute */
 	char	  **col_values;		/* column value buffer */
 	AttInMetadata *attinmeta;	/* attribute metadata */
 
+	/* for storing result tuples */
+	MemoryContext scan_cxt;		/* context for per-scan lifespan data */
 	Tuplestorestate *tuples;	/* result of the scan */
 	bool		cursor_opened;	/* true if cursor has been opened */
 } PgsqlFdwExecutionState;
@@ -337,6 +341,15 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	festate->fdwplan = ((ForeignScan *) node->ss.ps.plan)->fdwplan;
 
 	/*
+	 * Create context for per-scan tuplestore under per-query context.
+	 */
+	festate->scan_cxt = AllocSetContextCreate(node->ss.ps.state->es_query_cxt,
+											  "pgsql_fdw per-scan data",
+											  ALLOCSET_DEFAULT_MINSIZE,
+											  ALLOCSET_DEFAULT_INITSIZE,
+											  ALLOCSET_DEFAULT_MAXSIZE);
+
+	/*
 	 * Get connection to the foreign server.  Connection manager would
 	 * establish new connection if necessary.
 	 */
@@ -357,7 +370,7 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	 *
 	 * Result will be filled in first Iterate call.
 	 */
-	oldcontext = MemoryContextSwitchTo(CurTransactionContext);
+	oldcontext = MemoryContextSwitchTo(festate->scan_cxt);
 	festate->tuples = tuplestore_begin_heap(false, false, work_mem);
 	MemoryContextSwitchTo(oldcontext);
 	festate->cursor_opened = false;
@@ -423,7 +436,7 @@ pgsqlIterateForeignScan(ForeignScanState *node)
 	/*
 	 * If enough tuples are left in tuplestore, just return next tuple from it.
 	 */
-	MemoryContextSwitchTo(node->ss.ps.state->es_query_cxt);
+	MemoryContextSwitchTo(festate->scan_cxt);
 	if (tuplestore_gettupleslot(festate->tuples, true, false, slot))
 	{
 		MemoryContextSwitchTo(oldcontext);
@@ -454,7 +467,7 @@ pgsqlIterateForeignScan(ForeignScanState *node)
 	 * If we got more tuples from the server cursor, return next tuple from
 	 * tuplestore.
 	 */
-	MemoryContextSwitchTo(node->ss.ps.state->es_query_cxt);
+	MemoryContextSwitchTo(festate->scan_cxt);
 	if (tuplestore_gettupleslot(festate->tuples, true, false, slot))
 	{
 		MemoryContextSwitchTo(oldcontext);
