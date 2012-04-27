@@ -208,6 +208,13 @@ SELECT pgsql_fdw_disconnect(srvid, usesysid) FROM pgsql_fdw_get_connections();
 SELECT srvname, usename FROM pgsql_fdw_connections;
 
 -- ===================================================================
+-- conversion error
+-- ===================================================================
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c5 TYPE int;
+SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c5 TYPE timestamp;
+
+-- ===================================================================
 -- cleanup
 -- ===================================================================
 DROP EXTENSION pgsql_fdw CASCADE;

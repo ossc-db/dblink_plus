@@ -22,6 +22,7 @@
 #include "nodes/nodeFuncs.h"
 #include "optimizer/cost.h"
 #include "optimizer/pathnode.h"
+#include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
@@ -50,6 +51,12 @@ PG_MODULE_MAGIC;
 #define TRANSFER_COSTS_PER_BYTE		0.001
 
 /*
+ * The initial size of the buffer which is used to hold string representation
+ * of value of fetched column in libpq row processor.
+ */
+#define INITIAL_COLBUF_SIZE			1024
+
+/*
  * Cursors which are used together in a local query require different name, so
  * we use simple incremental name for that purpose.  We don't care wrap around
  * of cursor_id because it's hard to imagine that 2^32 cursors are used in a
@@ -73,6 +80,14 @@ enum FdwPrivateIndex {
 };
 
 /*
+ * Describe the attribute where data conversion fails.
+ */
+typedef struct ErrorPos {
+	Oid			relid;			/* oid of the foreign table */
+	AttrNumber	cur_attno;		/* attribute number under process */
+} ErrorPos;
+
+/*
  * Describes an execution state of a foreign scan against a foreign table
  * using pgsql_fdw.
  */
@@ -86,14 +101,21 @@ typedef struct PgsqlFdwExecutionState
 	const char **param_values;	/* value array of external parameter */
 
 	/* for tuple generation */
+	char	   *colbuf;			/* column value buffer */
+	int			colbuflen;		/* column value buffer size */
 	AttrNumber	attnum;			/* # of non-dropped attribute */
-	char	  **col_values;		/* column value buffer */
+	Datum	   *values;			/* column value buffer */
+	bool	   *nulls;			/* column null indicator buffer */
 	AttInMetadata *attinmeta;	/* attribute metadata */
 
 	/* for storing result tuples */
 	MemoryContext scan_cxt;		/* context for per-scan lifespan data */
+	MemoryContext temp_cxt;		/* context for temporary data */
 	Tuplestorestate *tuples;	/* result of the scan */
 	bool		cursor_opened;	/* true if cursor has been opened */
+
+	/* for error reporting */
+	ErrorPos	errpos;
 } PgsqlFdwExecutionState;
 
 /*
@@ -128,7 +150,7 @@ static void adjust_costs(double rows, int width,
 static void execute_query(ForeignScanState *node);
 static PGresult *fetch_result(ForeignScanState *node);
 static void store_result(ForeignScanState *node, PGresult *res);
-
+static void pgsql_fdw_error_callback(void *arg);
 /*
  * Foreign-data wrapper handler function: return a struct with pointers
  * to my callback routines.
@@ -341,10 +363,15 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	festate->fdwplan = ((ForeignScan *) node->ss.ps.plan)->fdwplan;
 
 	/*
-	 * Create context for per-scan tuplestore under per-query context.
+	 * Create contexts for per-scan tuplestore under per-query context.
 	 */
 	festate->scan_cxt = AllocSetContextCreate(node->ss.ps.state->es_query_cxt,
 											  "pgsql_fdw per-scan data",
+											  ALLOCSET_DEFAULT_MINSIZE,
+											  ALLOCSET_DEFAULT_INITSIZE,
+											  ALLOCSET_DEFAULT_MAXSIZE);
+	festate->temp_cxt = AllocSetContextCreate(node->ss.ps.state->es_query_cxt,
+											  "pgsql_fdw temporary data",
 											  ALLOCSET_DEFAULT_MINSIZE,
 											  ALLOCSET_DEFAULT_INITSIZE,
 											  ALLOCSET_DEFAULT_MAXSIZE);
@@ -378,7 +405,10 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	/* Allocate buffers for column values. */
 	{
 		TupleDesc	tupdesc = slot->tts_tupleDescriptor;
-		festate->col_values = palloc(sizeof(char *) * tupdesc->natts);
+		festate->colbuflen = INITIAL_COLBUF_SIZE;
+		festate->colbuf = palloc(festate->colbuflen);
+		festate->values = palloc(sizeof(Datum) * tupdesc->natts);
+		festate->nulls = palloc(sizeof(bool) * tupdesc->natts);
 		festate->attinmeta = TupleDescGetAttInMetadata(tupdesc);
 	}
 
@@ -399,6 +429,8 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 		}
 	}
 
+	/* Remember which foreign table we are scanning. */
+	festate->errpos.relid = relid;
 
 	/* Store FDW-specific state into ForeignScanState */
 	node->fdw_state = (void *) festate;
@@ -798,8 +830,12 @@ store_result(ForeignScanState *node, PGresult *res)
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 	TupleDesc	tupdesc = slot->tts_tupleDescriptor;
 	PgsqlFdwExecutionState *festate;
+	AttInMetadata *attinmeta;
+	ErrorContextCallback errcontext;
+	MemoryContext oldcontext;
 
 	festate = (PgsqlFdwExecutionState *) node->fdw_state;
+	attinmeta = festate->attinmeta;
 	rows = PQntuples(res);
 	nfields = PQnfields(res);
 	attrs = tupdesc->attrs;
@@ -826,19 +862,65 @@ store_result(ForeignScanState *node, PGresult *res)
 		int			j;
 		HeapTuple	tuple;
 
+		CHECK_FOR_INTERRUPTS();
+
+		/*
+		 * Do the following work in a temp context that we reset after each
+		 * tuple.  This cleans up not only the data we have direct access to,
+		 * but any cruft the I/O functions might leak.
+		 */
+		oldcontext = MemoryContextSwitchTo(festate->temp_cxt);
+
 		for (i = 0, j = 0; i < tupdesc->natts; i++)
 		{
 			/* skip dropped columns. */
 			if (attrs[i]->attisdropped)
 			{
-				festate->col_values[i] = NULL;
+				festate->nulls[i] = true;
 				continue;
 			}
 
 			if (PQgetisnull(res, row, j))
-				festate->col_values[i] = NULL;
+			{
+				festate->nulls[i] = true;
+			}
 			else
-				festate->col_values[i] = PQgetvalue(res, row, j);
+			{
+				int		len;
+				Datum	value;
+
+				festate->nulls[i] = false;
+
+				MemoryContextSwitchTo(festate->scan_cxt);
+				len = strlen(PQgetvalue(res, row, j));
+				while (festate->colbuflen < len + 1)
+				{
+					festate->colbuflen *= 2;
+					festate->colbuf = repalloc(festate->colbuf,
+											   festate->colbuflen);
+				}
+				MemoryContextSwitchTo(festate->temp_cxt);
+				strcpy(festate->colbuf, PQgetvalue(res, row, j));
+
+				/*
+				 * Set up and install callback to report where conversion error
+				 * occurs.
+				 */
+				festate->errpos.cur_attno = i + 1;
+				errcontext.callback = pgsql_fdw_error_callback;
+				errcontext.arg = (void *) &festate->errpos;
+				errcontext.previous = error_context_stack;
+				error_context_stack = &errcontext;
+
+				value = InputFunctionCall(&attinmeta->attinfuncs[i],
+										  festate->colbuf,
+										  attinmeta->attioparams[i],
+										  attinmeta->atttypmods[i]);
+				festate->values[i] = value;
+
+				/* Uninstall error context callback. */
+				error_context_stack = errcontext.previous;
+			}
 			j++;
 		}
 
@@ -847,10 +929,30 @@ store_result(ForeignScanState *node, PGresult *res)
 		 * We don't have to free the tuple explicitly because it's been
 		 * allocated in the per-tuple context.
 		 */
-		tuple = BuildTupleFromCStrings(festate->attinmeta, festate->col_values);
+		tuple = heap_form_tuple(tupdesc, festate->values, festate->nulls);
 		tuplestore_puttuple(festate->tuples, tuple);
+
+		/* Cleanup */
+		MemoryContextSwitchTo(oldcontext);
+		MemoryContextReset(festate->temp_cxt);
 	}
 
 	tuplestore_donestoring(festate->tuples);
 }
 
+/*
+ * Callback function which is called when error occurs during column value
+ * conversion.  Print names of column and relation.
+ */
+static void
+pgsql_fdw_error_callback(void *arg)
+{
+	ErrorPos *errpos = (ErrorPos *) arg;
+	const char	   *relname;
+	const char	   *colname;
+
+	relname = get_rel_name(errpos->relid);
+	colname = get_attname(errpos->relid, errpos->cur_attno);
+	errcontext("column %s of foreign table %s",
+			   quote_identifier(colname), quote_identifier(relname));
+}

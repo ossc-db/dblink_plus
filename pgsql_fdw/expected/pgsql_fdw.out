@@ -496,6 +496,14 @@ SELECT srvname, usename FROM pgsql_fdw_connections;
 (0 rows)
 
 -- ===================================================================
+-- conversion error
+-- ===================================================================
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c5 TYPE int;
+SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+ERROR:  invalid input syntax for integer: "1970-01-02 00:00:00"
+CONTEXT:  column c5 of foreign table ft1
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c5 TYPE timestamp;
+-- ===================================================================
 -- cleanup
 -- ===================================================================
 DROP EXTENSION pgsql_fdw CASCADE;
