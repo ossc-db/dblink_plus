@@ -522,7 +522,7 @@ pgsqlReScanForeignScan(ForeignScanState *node)
 	List	   *fdw_private;
 	char	   *sql;
 	PGconn	   *conn;
-	PGresult   *res;
+	PGresult *volatile res;
 	PgsqlFdwExecutionState *festate;
 
 	festate = (PgsqlFdwExecutionState *) node->fdw_state;
@@ -570,7 +570,7 @@ pgsqlEndForeignScan(ForeignScanState *node)
 	List	   *fdw_private;
 	char	   *sql;
 	PGconn	   *conn;
-	PGresult   *res;
+	PGresult *volatile res;
 	PgsqlFdwExecutionState *festate;
 
 	festate = (PgsqlFdwExecutionState *) node->fdw_state;
@@ -625,7 +625,7 @@ get_remote_estimate(const char *sql, PGconn *conn,
 					double *rows, int *width,
 					Cost *startup_cost, Cost *total_cost)
 {
-	PGresult	   *res = NULL;
+	PGresult *volatile res = NULL;
 	StringInfoData  buf;
 	char		   *plan;
 	char		   *p;
@@ -707,7 +707,7 @@ execute_query(ForeignScanState *node)
 	const char	  **values = NULL;
 	char		   *sql;
 	PGconn		   *conn;
-	PGresult	   *res;
+	PGresult *volatile res;
 
 	festate = (PgsqlFdwExecutionState *) node->fdw_state;
 	types = festate->param_types;

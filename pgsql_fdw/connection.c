@@ -137,6 +137,8 @@ GetConnection(ForeignServer *server, UserMapping *user, bool use_tx)
 	 */
 	if (entry->conn == NULL)
 	{
+		PGconn *volatile conn = NULL;
+
 		/*
 		 * Use PG_TRY block to ensure closing connection on error.
 		 */
@@ -148,18 +150,20 @@ GetConnection(ForeignServer *server, UserMapping *user, bool use_tx)
 			 * Note: key items of entry has already been initialized in
 			 * hash_search(HASH_ENTER).
 			 */
-			entry->conn = connect_pg_server(server, user);
+			conn = connect_pg_server(server, user);
 		}
 		PG_CATCH();
 		{
 			/* Clear connection cache entry on error case. */
-			PQfinish(entry->conn);
+			PQfinish(conn);
+			conn = NULL;
 			entry->refs = 0;
 			entry->use_tx = false;
 			entry->conn = NULL;
 			PG_RE_THROW();
 		}
 		PG_END_TRY();
+		entry->conn = conn;
 	}
 
 	/* Increase connection reference counter. */
