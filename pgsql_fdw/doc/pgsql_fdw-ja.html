@@ -188,11 +188,11 @@ postgres=#
 <p>EXPLAIN コマンドを実行することで、実際に外部サーバに発行されているクエリを知ることができます。以下の例では、remote_accouns 外部テーブルを経由して pgbench_accounts テーブルにアクセスしていることが分かります。</p>
 <pre>
 postgres=# EXPLAIN SELECT aid, bid, abalance FROM remote_accounts WHERE aid = 1;
-                                                                QUERY PLAN
-------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on remote_accounts  (cost=100.00..108.30 rows=1 width=12)
+                                                                           QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on remote_accounts  (cost=100.00..130.82 rows=1 width=12)
    Filter: (aid = 1)
-   Remote SQL: DECLARE pgsql_fdw_cursor_2 SCROLL CURSOR FOR SELECT aid, bid, abalance, NULL FROM public.pgbench_accounts WHERE (aid = 1)
+   Remote SQL: DECLARE pgsql_fdw_cursor_3 SCROLL CURSOR FOR SELECT aid, bid, abalance, NULL FROM public.pgbench_accounts WHERE ((aid OPERATOR(pg_catalog.=) 1))
 (3 rows)
 </pre>
 

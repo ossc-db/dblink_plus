@@ -15,7 +15,9 @@
 #define PGSQL_FDW_H
 
 #include "postgres.h"
+#include "lib/stringinfo.h"
 #include "nodes/relation.h"
+#include "utils/relcache.h"
 
 /* in option.c */
 int ExtractConnectionOptions(List *defelems,
@@ -24,12 +26,18 @@ int ExtractConnectionOptions(List *defelems,
 char *GetFdwOptionValue(Oid relid, const char *optname);
 
 /* in deparse.c */
-char *deparseSql(Oid relid, PlannerInfo *root, RelOptInfo *baserel);
-
-/* in ruleutils.c */
-List *deparse_context_for_rtelist(List *rtable);
-char *deparse_expression_pg(Node *expr, List *dpcontext, bool forceprefix,
-							bool showimplicit);
-
+void deparseSimpleSql(StringInfo buf,
+					  Oid relid,
+					  PlannerInfo *root,
+					  RelOptInfo *baserel);
+void appendWhereClause(StringInfo buf,
+					   bool has_where,
+					   List *exprs,
+					   PlannerInfo *root);
+void sortConditions(PlannerInfo *root,
+					RelOptInfo *baserel,
+					List **remote_conds,
+					List **param_conds,
+					List **local_conds);
 
 #endif /* PGSQL_FDW_H */

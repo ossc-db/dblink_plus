@@ -181,9 +181,6 @@ PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c
 EXPLAIN (COSTS false) EXECUTE st3(10, 20);
 EXECUTE st3(10, 20);
 EXECUTE st3(20, 30);
--- fixed costs
-PREPARE st4(int) AS SELECT NULL FROM ft1 t1 WHERE t1.c1 = $1;
-EXPLAIN (COSTS true) EXECUTE st4(1);
 -- cleanup
 DEALLOCATE st1;
 DEALLOCATE st2;

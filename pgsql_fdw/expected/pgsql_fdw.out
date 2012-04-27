@@ -213,12 +213,12 @@ SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
 
 -- with WHERE clause
 EXPLAIN (VERBOSE, COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 = '1';
-                                                                                      QUERY PLAN                                                                                       
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                       QUERY PLAN                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7
    Filter: ((t1.c1 = 101) AND ((t1.c6)::text = '1'::text) AND (t1.c7 = '1'::bpchar))
-   Remote SQL: DECLARE pgsql_fdw_cursor_4 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 = 101) AND ((c6)::text = '1'::text) AND (c7 = '1'::bpchar)) 
+   Remote SQL: DECLARE pgsql_fdw_cursor_4 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.=) 101)) AND (((c6)::text OPERATOR(pg_catalog.=) '1'::text)) AND ((c7 OPERATOR(pg_catalog.=) '1'::bpchar))
 (4 rows)
 
 SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 = '1';
@@ -326,19 +326,19 @@ EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2;
 (3 rows)
 
 EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
-                                                              QUERY PLAN                                                              
---------------------------------------------------------------------------------------------------------------------------------------
+                                                                              QUERY PLAN                                                                               
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on ft1 t1
    Filter: (c1 = abs(c2))
-   Remote SQL: DECLARE pgsql_fdw_cursor_20 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 = abs(c2)) 
+   Remote SQL: DECLARE pgsql_fdw_cursor_20 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.=) pg_catalog.abs(c2)))
 (3 rows)
 
 EXPLAIN (COSTS false) SELECT * FROM ft1 t1 WHERE t1.c1 = t1.c2;
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on ft1 t1
    Filter: (c1 = c2)
-   Remote SQL: DECLARE pgsql_fdw_cursor_21 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 = c2) 
+   Remote SQL: DECLARE pgsql_fdw_cursor_21 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.=) c2))
 (3 rows)
 
 DROP OPERATOR === (int, int) CASCADE;
@@ -349,16 +349,16 @@ DROP FUNCTION pgsql_fdw_abs(int);
 -- simple join
 PREPARE st1(int, int) AS SELECT t1.c3, t2.c3 FROM ft1 t1, ft2 t2 WHERE t1.c1 = $1 AND t2.c1 = $2;
 EXPLAIN (COSTS false) EXECUTE st1(1, 2);
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Nested Loop
    ->  Foreign Scan on ft1 t1
          Filter: (c1 = $1)
-         Remote SQL: DECLARE pgsql_fdw_cursor_22 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
+         Remote SQL: DECLARE pgsql_fdw_cursor_22 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.=) $1))
    ->  Materialize
          ->  Foreign Scan on ft2 t2
                Filter: (c1 = $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_23 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $2) 
+               Remote SQL: DECLARE pgsql_fdw_cursor_23 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.=) $2))
 (8 rows)
 
 EXECUTE st1(1, 1);
@@ -376,19 +376,19 @@ EXECUTE st1(101, 101);
 -- subquery using stable function (can't be pushed down)
 PREPARE st2(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND EXTRACT(dow FROM c4) = 6) ORDER BY c1;
 EXPLAIN (COSTS false) EXECUTE st2(10, 20);
-                                                                        QUERY PLAN                                                                         
------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                   QUERY PLAN                                                                                    
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Sort Key: t1.c1
-   ->  Nested Loop
+   ->  Nested Loop Semi Join
          Join Filter: (t1.c3 = t2.c3)
-         ->  HashAggregate
-               ->  Foreign Scan on ft2 t2
-                     Filter: ((c1 > $1) AND (date_part('dow'::text, c4) = 6::double precision))
-                     Remote SQL: DECLARE pgsql_fdw_cursor_25 SCROLL CURSOR FOR SELECT c1, NULL, c3, c4, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 > $1) 
          ->  Foreign Scan on ft1 t1
                Filter: (c1 < $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_24 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
+               Remote SQL: DECLARE pgsql_fdw_cursor_24 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.<) $2))
+         ->  Materialize
+               ->  Foreign Scan on ft2 t2
+                     Filter: ((c1 > $1) AND (date_part('dow'::text, c4) = 6::double precision))
+                     Remote SQL: DECLARE pgsql_fdw_cursor_25 SCROLL CURSOR FOR SELECT c1, NULL, c3, c4, NULL, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.>) $1))
 (11 rows)
 
 EXECUTE st2(10, 20);
@@ -406,20 +406,21 @@ EXECUTE st1(101, 101);
 -- subquery using immutable function (can be pushed down)
 PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND EXTRACT(dow FROM c5) = 6) ORDER BY c1;
 EXPLAIN (COSTS false) EXECUTE st3(10, 20);
-                                                                                                     QUERY PLAN                                                                                                     
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                   QUERY PLAN                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Sort Key: t1.c1
-   ->  Nested Loop
-         Join Filter: (t1.c3 = t2.c3)
-         ->  HashAggregate
-               ->  Foreign Scan on ft2 t2
-                     Filter: ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision))
-                     Remote SQL: DECLARE pgsql_fdw_cursor_27 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, c5, NULL, NULL FROM "S 1"."T 1" WHERE ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision)) 
+   ->  Hash Join
+         Hash Cond: (t1.c3 = t2.c3)
          ->  Foreign Scan on ft1 t1
                Filter: (c1 < $2)
-               Remote SQL: DECLARE pgsql_fdw_cursor_26 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE (c1 < $2) 
-(11 rows)
+               Remote SQL: DECLARE pgsql_fdw_cursor_26 SCROLL CURSOR FOR SELECT c1, c2, c3, c4, c5, c6, c7 FROM "S 1"."T 1" WHERE ((c1 OPERATOR(pg_catalog.<) $2))
+         ->  Hash
+               ->  HashAggregate
+                     ->  Foreign Scan on ft2 t2
+                           Filter: ((c1 > $1) AND (date_part('dow'::text, c5) = 6::double precision))
+                           Remote SQL: DECLARE pgsql_fdw_cursor_27 SCROLL CURSOR FOR SELECT c1, NULL, c3, NULL, c5, NULL, NULL FROM "S 1"."T 1" WHERE ((pg_catalog.date_part('dow'::text, c5) OPERATOR(pg_catalog.=) 6::double precision)) AND ((c1 OPERATOR(pg_catalog.>) $1))
+(12 rows)
 
 EXECUTE st3(10, 20);
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     
@@ -433,21 +434,12 @@ EXECUTE st3(20, 30);
  23 |  3 | 00023 | Sat Jan 24 00:00:00 1970 PST | Sat Jan 24 00:00:00 1970 | 3  | 3         
 (1 row)
 
--- fixed costs
-PREPARE st4(int) AS SELECT NULL FROM ft1 t1 WHERE t1.c1 = $1;
-EXPLAIN (COSTS true) EXECUTE st4(1);
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on ft1 t1  (cost=100.00..10000.00 rows=1000 width=0)
-   Filter: (c1 = $1)
-   Remote SQL: DECLARE pgsql_fdw_cursor_28 SCROLL CURSOR FOR SELECT c1, NULL, NULL, NULL, NULL, NULL, NULL FROM "S 1"."T 1" WHERE (c1 = $1) 
-(3 rows)
-
 -- cleanup
 DEALLOCATE st1;
 DEALLOCATE st2;
 DEALLOCATE st3;
 DEALLOCATE st4;
+ERROR:  prepared statement "st4" does not exist
 -- ===================================================================
 -- cursor
 -- ===================================================================

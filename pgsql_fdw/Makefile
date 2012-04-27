@@ -1,7 +1,7 @@
 # pgsql_fdw/Makefile
 
 MODULE_big = pgsql_fdw
-OBJS	= pgsql_fdw.o option.o deparse.o connection.o ruleutils.o
+OBJS	= pgsql_fdw.o option.o deparse.o connection.o
 PG_CPPFLAGS = -I$(libpq_srcdir)
 SHLIB_LINK = $(libpq)
 

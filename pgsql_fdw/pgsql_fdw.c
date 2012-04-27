@@ -113,17 +113,17 @@ static void pgsqlEndForeignScan(ForeignScanState *node);
 /*
  * Helper functions
  */
-static void estimate_costs(PlannerInfo *root,
-						   RelOptInfo *baserel,
-						   const char *sql,
-						   Oid serverid,
-						   Cost *startup_cost,
-						   Cost *total_cost);
+static void get_remote_estimate(const char *sql,
+								PGconn *conn,
+								double *rows,
+								int *width,
+								Cost *startup_cost,
+								Cost *total_cost);
+static void adjust_costs(double rows, int width,
+						 Cost *startup_cost, Cost *total_cost);
 static void execute_query(ForeignScanState *node);
 static PGresult *fetch_result(ForeignScanState *node);
 static void store_result(ForeignScanState *node, PGresult *res);
-static bool contain_param(Node *clause);
-static bool contain_param_walker(Node *node, void *context);
 
 /*
  * Foreign-data wrapper handler function: return a struct with pointers
@@ -153,29 +153,88 @@ pgsqlPlanForeignScan(Oid foreigntableid,
 					PlannerInfo *root,
 					RelOptInfo *baserel)
 {
+	FdwPlan		   *fdwplan;
+	StringInfoData	sql;
+	ForeignTable   *table;
+	ForeignServer  *server;
+	UserMapping	   *user;
+	PGconn		   *conn;
+	double			rows;
+	int				width;
+	Cost			startup_cost;
+	Cost			total_cost;
+	List		   *fdw_private = NIL;
+	List		   *param_conds = NIL;
+	List		   *local_conds = NIL;
+	Selectivity		sel;
+	bool			is_first = true;
+
+	/* stuffs for cursor definition */
 	char			name[128];	/* must be larger than format + 10 */
 	StringInfoData	cursor;
 	const char	   *fetch_count_str;
 	int				fetch_count = DEFAULT_FETCH_COUNT;
-	char		   *sql;
-	FdwPlan		   *fdwplan;
-	List		   *fdw_private = NIL;
-	ForeignTable   *table;
-	ForeignServer  *server;
+	List		   *remote_conds = NIL;
 
-	/* Construct FdwPlan with cost estimates */
+	/*
+	 * We use FdwPlan to pass various information to subsequent functions.
+	 */
 	fdwplan = makeNode(FdwPlan);
-	sql = deparseSql(foreigntableid, root, baserel);
+	initStringInfo(&sql);
+
+	/* Retrieve catalog objects which are necessary to estimate rows. */
 	table = GetForeignTable(foreigntableid);
 	server = GetForeignServer(table->serverid);
-	estimate_costs(root, baserel, sql, server->serverid,
-				   &fdwplan->startup_cost, &fdwplan->total_cost);
+	user = GetUserMapping(GetOuterUserId(), server->serverid);
+
+	/*
+	 * Construct remote query which consists of SELECT, FROM, and WHERE
+	 * clauses, but conditions contain any Param node are excluded because
+	 * placeholder can't be used in EXPLAIN statement.  Such conditions are
+	 * appended later.
+	 */
+	sortConditions(root, baserel, &remote_conds, &param_conds, &local_conds);
+	deparseSimpleSql(&sql, foreigntableid, root, baserel);
+	if (list_length(remote_conds) > 0)
+	{
+		appendWhereClause(&sql, is_first, remote_conds, root);
+		is_first = false;
+	}
+	conn = GetConnection(server, user);
+	get_remote_estimate(sql.data, conn, &rows, &width,
+						&startup_cost, &total_cost);
+	ReleaseConnection(conn);
+	if (list_length(param_conds) > 0)
+	{
+		appendWhereClause(&sql, is_first, param_conds, root);
+		is_first = false;
+	}
+
+	/* Give estimated costs to planner via FdwPlan. */
+	adjust_costs(baserel->rows, baserel->width, &startup_cost, &total_cost);
+	fdwplan->startup_cost = startup_cost;
+	fdwplan->total_cost = total_cost;
+
+	/*
+	 * Estimate selectivity of conditions which are not used in remote EXPLAIN
+	 * by calling clauselist_selectivity().  The best we can do for
+	 * parameterized condition is to estimate selectivity on the basis of local
+	 * statistics.  When we actually obtain result rows, such conditions are
+	 * deparsed into remote query and reduce rows transferred.
+	 */
+	sel = 1.0;
+	sel *= clauselist_selectivity(root, param_conds,
+								  baserel->relid, JOIN_INNER, NULL);
+	sel *= clauselist_selectivity(root, local_conds,
+								  baserel->relid, JOIN_INNER, NULL);
+	baserel->rows = rows * sel;
+	baserel->width = width;
 
 	/*
 	 * Store plain SELECT statement in private area of FdwPlan.  This will be
 	 * used for executing remote query and explaining scan.
 	 */
-	fdw_private = list_make1(makeString(sql));
+	fdw_private = list_make1(makeString(sql.data));
 
 	/* Use specified fetch_count instead of default value, if any. */
 	fetch_count_str = GetFdwOptionValue(foreigntableid,
@@ -209,7 +268,8 @@ pgsqlPlanForeignScan(Oid foreigntableid,
 
 	/* Construct statement to declare cursor */
 	initStringInfo(&cursor);
-	appendStringInfo(&cursor, "DECLARE %s SCROLL CURSOR FOR %s", name, sql);
+	appendStringInfo(&cursor, "DECLARE %s SCROLL CURSOR FOR %s",
+					 name, sql.data);
 	fdw_private = lappend(fdw_private, makeString(cursor.data));
 
 	/* Construct statement to fetch rows from cursor */
@@ -513,17 +573,13 @@ pgsqlEndForeignScan(ForeignScanState *node)
 }
 
 /*
- * Estimate costs of scanning a foreign table.
+ * Estimate costs of executing given SQL statement.
  */
 static void
-estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
-			   const char *sql, Oid serverid,
-			   Cost *startup_cost, Cost *total_cost)
+get_remote_estimate(const char *sql, PGconn *conn,
+					double *rows, int *width,
+					Cost *startup_cost, Cost *total_cost)
 {
-	ListCell	   *lc;
-	ForeignServer  *server;
-	UserMapping	   *user;
-	PGconn		   *conn = NULL;
 	PGresult	   *res = NULL;
 	StringInfoData  buf;
 	char		   *plan;
@@ -531,37 +587,16 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 	int				n;
 
 	/*
-	 * If the baserestrictinfo contains any Param node with paramkind
-	 * PARAM_EXTERNAL, we need result of EXPLAIN for EXECUTE statement, not for
-	 * simple SELECT statement.  However, we can't get actual parameter values
-	 * here, so we use fixed and large costs as second best.
+	 * Construct EXPLAIN statement with given SQL statement.
 	 */
-	foreach(lc, baserel->baserestrictinfo)
-	{
-		RestrictInfo	   *rs = (RestrictInfo *) lfirst(lc);
-		if (contain_param((Node *) rs->clause))
-		{
-			*startup_cost = CONNECTION_COSTS;
-			*total_cost = 10000;	/* groundless large costs */
-
-			return;
-		}
-	}
-
-	/*
-	 * Get connection to the foreign server.  Connection manager would
-	 * establish new connection if necessary.
-	 */
-	server = GetForeignServer(serverid);
-	user = GetUserMapping(GetOuterUserId(), server->serverid);
-	conn = GetConnection(server, user);
 	initStringInfo(&buf);
 	appendStringInfo(&buf, "EXPLAIN %s", sql);
 
+	/* PGresult must be released before leaving this function. */
 	PG_TRY();
 	{
 		res = PQexec(conn, buf.data);
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0)
 		{
 			char *msg;
 
@@ -571,19 +606,24 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 					 errdetail("%s", msg),
 					 errhint("%s", sql)));
 		}
-		plan = pstrdup(PQgetvalue(res, 0, 0));
+
+		/*
+		 * Find estimation portion from top plan node. Here we search opening
+		 * parentheses from the end of the line to avoid finding unexpected
+		 * parentheses.
+		 */
+		plan = PQgetvalue(res, 0, 0);
 		p = strrchr(plan, '(');
 		if (p == NULL)
 			elog(ERROR, "wrong EXPLAIN output: %s", plan);
 		n = sscanf(p,
 				   "(cost=%lf..%lf rows=%lf width=%d)",
-				   startup_cost, total_cost, &baserel->rows, &baserel->width);
+				   startup_cost, total_cost, rows, width);
 		if (n != 4)
 			elog(ERROR, "could not get estimation from EXPLAIN output");
 
 		PQclear(res);
 		res = NULL;
-		ReleaseConnection(conn);
 	}
 	PG_CATCH();
 	{
@@ -591,18 +631,23 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
+}
 
-	/* TODO Selectivity of quals pushed down should be considered. */
-
+/*
+ * Adjust costs estimated on remote end with some overheads such as connection
+ * and data transfer.
+ */
+static void
+adjust_costs(double rows, int width, Cost *startup_cost, Cost *total_cost)
+{
 	/* add cost to establish connection. */
 	*startup_cost += CONNECTION_COSTS;
 	*total_cost += CONNECTION_COSTS;
 
 	/* add cost to transfer result. */
-	*total_cost += TRANSFER_COSTS_PER_BYTE * baserel->width * baserel->tuples;
-	*total_cost += cpu_tuple_cost * baserel->tuples;
+	*total_cost += TRANSFER_COSTS_PER_BYTE * width * rows;
+	*total_cost += cpu_tuple_cost * rows;
 }
-
 /*
  * Execute remote query with current parameters.
  */
@@ -796,32 +841,3 @@ store_result(ForeignScanState *node, PGresult *res)
 	tuplestore_donestoring(festate->tuples);
 }
 
-/*
- * contain_param
- *	  Recursively search for Param nodes within a clause.
- *
- *	  Returns true if any parameter reference node found.
- *
- * This does not descend into subqueries, and so should be used only after
- * reduction of sublinks to subplans, or in contexts where it's known there
- * are no subqueries.  There mustn't be outer-aggregate references either.
- *
- * XXX: These functions could be in core, src/backend/optimizer/util/clauses.c.
- */
-static bool
-contain_param(Node *clause)
-{
-	return contain_param_walker(clause, NULL);
-}
-
-static bool
-contain_param_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-	if (IsA(node, Param))
-	{
-		return true;			/* abort the tree traversal and return true */
-	}
-	return expression_tree_walker(node, contain_param_walker, context);
-}
