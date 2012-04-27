@@ -19,7 +19,7 @@
 /*
  * Connection management
  */
-PGconn *GetConnection(ForeignServer *server, UserMapping *user);
+PGconn *GetConnection(ForeignServer *server, UserMapping *user, bool use_tx);
 void ReleaseConnection(PGconn *conn);
 
 #endif /* CONNECTION_H */

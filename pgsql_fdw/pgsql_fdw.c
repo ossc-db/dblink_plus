@@ -200,7 +200,7 @@ pgsqlPlanForeignScan(Oid foreigntableid,
 		appendWhereClause(&sql, is_first, remote_conds, root);
 		is_first = false;
 	}
-	conn = GetConnection(server, user);
+	conn = GetConnection(server, user, false);
 	get_remote_estimate(sql.data, conn, &rows, &width,
 						&startup_cost, &total_cost);
 	ReleaseConnection(conn);
@@ -344,7 +344,7 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 	table = GetForeignTable(relid);
 	server = GetForeignServer(table->serverid);
 	user = GetUserMapping(GetOuterUserId(), server->serverid);
-	conn = GetConnection(server, user);
+	conn = GetConnection(server, user, true);
 	festate->conn = conn;
 
 	/*

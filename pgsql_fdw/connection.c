@@ -12,6 +12,7 @@
  */
 #include "postgres.h"
 
+#include "access/xact.h"
 #include "catalog/pg_type.h"
 #include "foreign/foreign.h"
 #include "funcapi.h"
@@ -41,6 +42,7 @@ typedef struct ConnCacheEntry
 	Oid				serverid;	/* oid of foreign server */
 	Oid				userid;		/* oid of local user */
 
+	bool			use_tx;		/* true when using remote transaction */
 	int				refs;		/* reference counter */
 	PGconn		   *conn;		/* foreign server connection */
 } ConnCacheEntry;
@@ -60,18 +62,28 @@ cleanup_connection(ResourceReleasePhase phase,
 				   bool isTopLevel,
 				   void *arg);
 static PGconn *connect_pg_server(ForeignServer *server, UserMapping *user);
+static void begin_remote_tx(PGconn *conn);
+static void abort_remote_tx(PGconn *conn);
+
 /*
  * Get a PGconn which can be used to execute foreign query on the remote
  * PostgreSQL server with the user's authorization.  If this was the first
  * request for the server, new connection is established.
+ *
+ * When use_tx is true, remote transaction is started if caller is the only
+ * user of the connection.  Isolation level of the remote transaction is same
+ * as local transaction, and remote transaction will be aborted when last
+ * user release.
+ *
+ * TODO: Note that caching connections requires a mechanism to detect change of
+ * FDW object to invalidate already established connections.
  */
 PGconn *
-GetConnection(ForeignServer *server, UserMapping *user)
+GetConnection(ForeignServer *server, UserMapping *user, bool use_tx)
 {
 	bool			found;
 	ConnCacheEntry *entry;
 	ConnCacheEntry	key;
-	PGconn		   *conn = NULL;
 
 	/* initialize connection cache if it isn't */
 	if (FSConnectionHash == NULL)
@@ -99,74 +111,72 @@ GetConnection(ForeignServer *server, UserMapping *user)
 	key.serverid = server->serverid;
 	key.userid = GetOuterUserId();
 
-	/* Is there any cached and valid connection with such key? */
+	/*
+	 * Find cached entry for requested connection.  If we couldn't find,
+	 * callback function of ResourceOwner should be registered to clean the
+	 * connection up on error including user interrupt.
+	 */
 	entry = hash_search(FSConnectionHash, &key, HASH_ENTER, &found);
-	if (found)
+	if (!found)
 	{
-		if (entry->conn != NULL)
-		{
-			entry->refs++;
-			elog(DEBUG1,
-				 "reuse connection %u/%u (%d)",
-				 entry->serverid,
-				 entry->userid,
-				 entry->refs);
-			return entry->conn;
-		}
-
-		/*
-		 * Connection cache entry was found but connection in it is invalid.
-		 * We reuse entry to store newly established connection later.
-		 */
-	}
-	else
-	{
-		/*
-		 * Use ResourceOwner to clean the connection up on error including
-		 * user interrupt.
-		 */
-		elog(DEBUG1,
-			 "create entry for %u/%u (%d)",
-			 entry->serverid,
-			 entry->userid,
-			 entry->refs);
 		entry->refs = 0;
+		entry->use_tx = false;
 		entry->conn = NULL;
 		RegisterResourceReleaseCallback(cleanup_connection, entry);
 	}
 
 	/*
-	 * Here we have to establish new connection.
-	 * Use PG_TRY block to ensure closing connection on error.
+	 * We don't check the health of cached connection here, because it would
+	 * require some overhead.  Broken connection and its cache entry will be
+	 * cleaned up when the connection is actually used.
 	 */
-	PG_TRY();
-	{
-		/* Connect to the foreign PostgreSQL server */
-		conn = connect_pg_server(server, user);
 
+	/*
+	 * If cache entry doesn't have connection, we have to establish new
+	 * connection.
+	 */
+	if (entry->conn == NULL)
+	{
 		/*
-		 * Initialize the cache entry to keep new connection.
-		 * Note: key items of entry has been initialized in
-		 * hash_search(HASH_ENTER).
+		 * Use PG_TRY block to ensure closing connection on error.
 		 */
-		entry->refs = 1;
-		entry->conn = conn;
-		elog(DEBUG1,
-			 "connected to %u/%u (%d)",
-			 entry->serverid,
-			 entry->userid,
-			 entry->refs);
+		PG_TRY();
+		{
+			/*
+			 * Connect to the foreign PostgreSQL server, and store it in cache
+			 * entry to keep new connection.
+			 * Note: key items of entry has already been initialized in
+			 * hash_search(HASH_ENTER).
+			 */
+			entry->conn = connect_pg_server(server, user);
+		}
+		PG_CATCH();
+		{
+			/* Clear connection cache entry on error case. */
+			PQfinish(entry->conn);
+			entry->refs = 0;
+			entry->use_tx = false;
+			entry->conn = NULL;
+			PG_RE_THROW();
+		}
+		PG_END_TRY();
 	}
-	PG_CATCH();
-	{
-		PQfinish(conn);
-		entry->refs = 0;
-		entry->conn = NULL;
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
 
-	return conn;
+	/* Increase connection reference counter. */
+	entry->refs++;
+
+	/*
+	 * If requester is the only referrer of this connection, start transaction
+	 * with the same isolation level as the local transaction we are in.
+	 * We need to remember whether this connection uses remote transaction to
+	 * abort it when this connection is released completely.
+	 */
+	if (use_tx && entry->refs == 1)
+		begin_remote_tx(entry->conn);
+	entry->use_tx = use_tx;
+
+
+	return entry->conn;
 }
 
 /*
@@ -202,7 +212,6 @@ connect_pg_server(ForeignServer *server, UserMapping *user)
 {
 	const char	   *conname = server->servername;
 	PGconn		   *conn;
-	PGresult	   *res;
 	const char	  **all_keywords;
 	const char	  **all_values;
 	const char	  **keywords;
@@ -280,18 +289,58 @@ connect_pg_server(ForeignServer *server, UserMapping *user)
 				 errhint("Target server's authentication method must be changed.")));
 	}
 
-	/*
-	 * Start transaction to use cursor to retrieve data separately.
-	 */
-	res = PQexec(conn, "BEGIN");
+	return conn;
+}
+
+/*
+ * Start remote transaction with proper isolation level.
+ */
+static void
+begin_remote_tx(PGconn *conn)
+{
+	const char	   *sql = NULL;		/* keep compiler quiet. */
+	PGresult	   *res;
+
+	switch (XactIsoLevel)
+	{
+		case XACT_READ_UNCOMMITTED:
+		case XACT_READ_COMMITTED:
+		case XACT_REPEATABLE_READ:
+			sql = "START TRANSACTION ISOLATION LEVEL REPEATABLE READ";
+			break;
+		case XACT_SERIALIZABLE:
+			sql = "START TRANSACTION ISOLATION LEVEL SERIALIZABLE";
+			break;
+		default:
+			elog(ERROR, "unexpected isolation level: %d", XactIsoLevel);
+			break;
+	}
+
+	elog(DEBUG3, "starting remote transaction with \"%s\"", sql);
+
+	res = PQexec(conn, sql);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
 		PQclear(res);
-		elog(ERROR, "could not start transaction");
+		elog(ERROR, "could not start transaction: %s", PQerrorMessage(conn));
 	}
 	PQclear(res);
+}
 
-	return conn;
+static void
+abort_remote_tx(PGconn *conn)
+{
+	PGresult	   *res;
+
+	elog(DEBUG3, "aborting remote transaction");
+
+	res = PQexec(conn, "ABORT TRANSACTION");
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+	{
+		PQclear(res);
+		elog(ERROR, "could not abort transaction: %s", PQerrorMessage(conn));
+	}
+	PQclear(res);
 }
 
 /*
@@ -308,21 +357,20 @@ ReleaseConnection(PGconn *conn)
 		return;
 
 	/*
-	 * We need to scan sequentially since we use the address to find appropriate
-	 * PGconn from the hash table.
+	 * We need to scan sequentially since we use the address to find
+	 * appropriate PGconn from the hash table.
 	 */
 	hash_seq_init(&scan, FSConnectionHash);
 	while ((entry = (ConnCacheEntry *) hash_seq_search(&scan)))
 	{
 		if (entry->conn == conn)
+		{
+			hash_seq_term(&scan);
 			break;
+		}
 	}
-	if (entry != NULL)
-		hash_seq_term(&scan);
 
-	/*
-	 * If the released connection was an orphan, just close it.
-	 */
+	/* If the released connection was an orphan, just close it. */
 	if (entry == NULL)
 	{
 		PQfinish(conn);
@@ -330,9 +378,18 @@ ReleaseConnection(PGconn *conn)
 	}
 
 	/*
-	 * If the caller was the last referrer, unregister it from cache.
-	 * TODO: Note that sharing connections requires a mechanism to detect
-	 * change of FDW object to invalidate lasting connections.
+	 * If this connection uses remote transaction and caller is the last user,
+	 * abort remote transaction and forget about it.
+	 */
+	if (entry->use_tx && entry->refs == 1)
+	{
+		abort_remote_tx(conn);
+		entry->use_tx = false;
+	}
+
+	/*
+	 * Decrease reference counter of this connection.  Even if the caller was
+	 * the last referrer, we don't unregister it from cache.
 	 */
 	entry->refs--;
 	elog(DEBUG1,
