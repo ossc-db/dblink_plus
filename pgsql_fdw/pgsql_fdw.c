@@ -15,6 +15,7 @@
 
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_foreign_table.h"
+#include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
 #include "funcapi.h"
@@ -412,7 +413,13 @@ pgsqlBeginForeignScan(ForeignScanState *node, int eflags)
 		festate->attinmeta = TupleDescGetAttInMetadata(tupdesc);
 	}
 
-	/* Allocate buffers for query parameters. */
+	/*
+	 * Allocate buffers for query parameters.
+	 *
+	 * ParamListInfo might include entries for pseudo-parameter such as
+	 * PL/pgSQL's FOUND variable, but we don't care that here, because wasted
+	 * area seems not so large.
+	 */
 	{
 		ParamListInfo	params = node->ss.ps.state->es_param_list_info;
 		int				numParams = params ? params->numParams : 0;
@@ -717,6 +724,10 @@ execute_query(ForeignScanState *node)
 	 * Construct parameter array in text format.  We don't release memory for
 	 * the arrays explicitly, because the memory usage would not be very large,
 	 * and anyway they will be released in context cleanup.
+	 *
+	 * If this query is invoked from pl/pgsql function, we have extra entry
+	 * for dummy variable FOUND in ParamListInfo, so we need to check type oid
+	 * to exclude it from remote parameters.
 	 */
 	if (numParams > 0)
 	{
@@ -724,10 +735,19 @@ execute_query(ForeignScanState *node)
 
 		for (i = 0; i < numParams; i++)
 		{
-			types[i] = params->params[i].ptype;
-			if (params->params[i].isnull)
-				values[i] = NULL;
-			else
+			ParamExternData *prm = &params->params[i];
+
+			/* give hook a chance in case paramter is dynamic */
+			if (!OidIsValid(prm->ptype) && params->paramFetch != NULL)
+				params->paramFetch(params, i + 1);
+
+			/*
+			 * Get string representation of each paramter value by invoking
+			 * type-specific output function unless the value is null or it's
+			 * not used in the query.
+			 */
+			types[i] = prm->ptype;
+			if (!prm->isnull && OidIsValid(types[i]))
 			{
 				Oid			out_func_oid;	
 				bool		isvarlena;
@@ -735,8 +755,20 @@ execute_query(ForeignScanState *node)
 
 				getTypeOutputInfo(types[i], &out_func_oid, &isvarlena);
 				fmgr_info(out_func_oid, &func);
-				values[i] = OutputFunctionCall(&func, params->params[i].value);
+				values[i] = OutputFunctionCall(&func, prm->value);
 			}
+			else
+				values[i] = NULL;
+
+			/*
+			 * We use type "text" (groundless but seems most flexible) for
+			 * unused (and type-unknown) parameters.  We can't remove entry for 
+			 * unused parameter from the arrays, because parameter references
+			 * in remote query ($n) has been indexed based on full legnth
+			 * parameter list.
+			 */
+			if (!OidIsValid(types[i]))
+				types[i] = TEXTOID;
 		}
 	}
 

@@ -201,6 +201,20 @@ CLOSE cur1;
 COMMIT;
 
 -- ===================================================================
+-- used in pl/pgsql function
+-- ===================================================================
+CREATE OR REPLACE FUNCTION f_test(p_c1 int) RETURNS int AS $$
+DECLARE
+	v_c1 int;
+BEGIN
+    SELECT c1 INTO v_c1 FROM ft1 WHERE c1 = p_c1 LIMIT 1;
+    PERFORM c1 FROM ft1 WHERE c1 = p_c1 AND p_c1 = v_c1 LIMIT 1;
+    RETURN v_c1;
+END;
+$$ LANGUAGE plpgsql;
+SELECT f_test(100);
+
+-- ===================================================================
 -- connection management
 -- ===================================================================
 SELECT srvname, usename FROM pgsql_fdw_connections;
