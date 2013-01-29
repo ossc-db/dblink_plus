@@ -9,6 +9,7 @@ def do_gitarchive(software, release, commitnum):
     try:
         assert "syncdb" in os.listdir(".")
         assert "dblink_plus" in os.listdir(".")
+        assert "oracle_fdw" in os.listdir(".")
     except:
         print "ERROR: You are probably wrong dir"
     os.chdir(software)
@@ -31,13 +32,13 @@ def report_error(msg):
 def parse_args():
     import optparse
     parser = optparse.OptionParser()
-    parser.add_option('-s','--software',dest='software',help='choose either "dblink_plus" or "syncdb"')
+    parser.add_option('-s','--software',dest='software',help='choose either "dblink_plus", "syncdb" or "oracle_fdw"')
     parser.add_option('-r','--release',dest='release',help='input release number')
     parser.add_option('-n','--commitnum',dest='commitnum',help='input comminum')
     opts, args = parser.parse_args()
     # check for -s 
     try:
-        assert opts.software in ["dblink_plus", "syncdb"]
+        assert opts.software in ["dblink_plus", "syncdb", "oracle_fdw"]
     except:
         report_error("invalid value for -s")
     # check for -r
