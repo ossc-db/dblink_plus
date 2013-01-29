@@ -1,0 +1,228 @@
+\c contrib_regression_utf8
+SET DateStyle = 'ISO,YMD';
+SET IntervalStyle = 'sql_standard';
+SET TIMEZONE = 'Asia/Tokyo';
+-- '||' operator
+-- 1258	: textcat
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE (('a' || RTRIM("val")) = 'aaAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE (('a' || "val") = 'aaAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE (('a' || "val") = 'aaAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE (('a ' || RTRIM("val")) = 'a aAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE (('a ' || "val") = 'a aAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE (('a ' || "val") = 'a aAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE 'a '::text || val = 'a aAあア亜阿';
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE (('a ' || RTRIM("val")) = 'a aAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE 'a '::text || val = 'a aAあア亜阿';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE (('a ' || "val") = 'a aAあア亜阿')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE 'a '::text || val = 'a aAあア亜阿';
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE (('a ' || "val") = 'a aAあア亜阿')
+(2 rows)
+
+SELECT id FROM char_char WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE 'a '::char(2) || val = 'aaAあア亜阿';
+ERROR:  OCI_ERROR - ORA-00932: データ型が一致しません: -が予想されましたがCLOBです。
+
+SELECT id FROM char_char WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE 'a '::varchar(2) || val = 'a aAあア亜阿';
+ERROR:  OCI_ERROR - ORA-00932: データ型が一致しません: -が予想されましたがCLOBです。
+
+SELECT id FROM char_char WHERE 'a '::text || val = 'a aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE 'a '::text || val = 'a aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE 'a '::text || val = 'a aAあア亜阿';
+ERROR:  OCI_ERROR - ORA-00932: データ型が一致しません: -が予想されましたがCLOBです。
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE char_char_1 || char_char_1 = 'a';
+                                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((RTRIM("char_char_1") || RTRIM("char_char_1")) = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE char_char_1 || varchar2_varchar_1 = 'a';
+                                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((RTRIM("char_char_1") || "varchar2_varchar_1") = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE char_char_1 || clob_text_1 = 'a';
+                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((RTRIM("char_char_1") || "clob_text_1") = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE varchar2_varchar_1 || char_char_1 = 'a';
+                                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("varchar2_varchar_1" || RTRIM("char_char_1")) = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE varchar2_varchar_1 || varchar2_varchar_1 = 'a';
+                                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("varchar2_varchar_1" || "varchar2_varchar_1") = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE varchar2_varchar_1 || clob_text_1 = 'a';
+                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("varchar2_varchar_1" || "clob_text_1") = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE clob_text_1 || char_char_1 = 'a';
+                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("clob_text_1" || RTRIM("char_char_1")) = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE clob_text_1 || varchar2_varchar_1 = 'a';
+                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("clob_text_1" || "varchar2_varchar_1") = 'a')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE clob_text_1 || clob_text_1 = 'a';
+                                                                                                                                                                                                                                     QUERY PLAN                                                                                                                                                                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("clob_text_1" || "clob_text_1") = 'a')
+(2 rows)
+
+-- リテラル長超過
+SELECT id FROM char_varchar_ WHERE val = lpad('a', 4000, 'a');
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_varchar_ WHERE val = lpad('a', 4001, 'a');
+ERROR:  OCI_ERROR - ORA-01704: 文字列リテラルが長すぎます
+
+SELECT id FROM char_varchar_ WHERE val = lpad('あ', 1333, 'あ');
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_varchar_ WHERE val = lpad('あ', 1334, 'あ');
+ERROR:  OCI_ERROR - ORA-01704: 文字列リテラルが長すぎます
+
+-- Oracle CHAR BYTE column
+SELECT id FROM char_varchar_ WHERE val || lpad('a', 2000, 'a') = 'a';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_varchar_ WHERE val || lpad('a', 2001, 'a') = 'a';
+ERROR:  OCI_ERROR - ORA-01489: 文字列を連結した結果、長さが最大長を超えました
+
+-- Oracle CHAR CHAR column
+SELECT id FROM char_text WHERE val || lpad('a', 2000, 'a') = 'a';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_text WHERE val || lpad('a', 2001, 'a') = 'a';
+ERROR:  OCI_ERROR - ORA-01489: 文字列を連結した結果、長さが最大長を超えました
+
+-- Oracle VARCHAR2 BYTE column
+SELECT id FROM vc2_vc_b WHERE val || lpad('a', 3986, 'a') = 'a';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc_b WHERE val || lpad('a', 3987, 'a') = 'a';
+ERROR:  OCI_ERROR - ORA-01489: 文字列を連結した結果、長さが最大長を超えました
+
+-- Oracle VARCHAR2 CHAR column
+SELECT id FROM vc2_vc WHERE val || lpad('a', 3986, 'a') = 'a';
+ERROR:  OCI_ERROR - ORA-01489: 文字列を連結した結果、長さが最大長を超えました
+
+SELECT id FROM vc2_vc WHERE val || lpad('a', 3987, 'a') = 'a';
+ERROR:  OCI_ERROR - ORA-01489: 文字列を連結した結果、長さが最大長を超えました
+

@@ -1,0 +1,393 @@
+\c contrib_regression_utf8
+SET DateStyle = 'ISO,YMD';
+SET IntervalStyle = 'sql_standard';
+SET TIMEZONE = 'Asia/Tokyo';
+-- interval '/' operator
+-- 1326 : interval_div
+EXPLAIN (COSTS FALSE) SELECT id FROM itym_it WHERE val / 1 = '1 year 3 month'::interval;
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itym_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalym_" WHERE (("val" / 1) = INTERVAL '1-3' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itym_it WHERE val / 2 = '7 month'::interval;
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itym_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalym_" WHERE (("val" / 2) = INTERVAL '0-7' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itym_it WHERE val / 0.5 = '2 year 6 month'::interval;
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itym_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalym_" WHERE (("val" / 0.5) = INTERVAL '2-6' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itym_it WHERE val / 'Inf' = '1 year 3 month'::interval;
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itym_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalym_" WHERE (("val" / binary_double_infinity) = INTERVAL '1-3' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itym_it WHERE val / 'NaN' = '1 year 3 month'::interval;
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itym_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalym_" WHERE (("val" / binary_double_nan) = INTERVAL '1-3' YEAR(9) TO MONTH)
+(2 rows)
+
+SELECT id FROM itym_it WHERE val / 1 = '1 year 3 month'::interval;
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 1 = '1 year 3 month'::interval OR dummy();
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 2 = '7 month'::interval;
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 2 = '7 month 15 day'::interval OR dummy();
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 0.5 = '2 year 6 month'::interval;
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 0.5 = '2 year 6 month'::interval OR dummy();
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM itym_it WHERE val / 'Inf' = '1 year 3 month'::interval;
+ERROR:  OCI_ERROR - ORA-01426: 数値オーバーフローが発生しました
+
+SELECT id FROM itym_it WHERE val / 'Inf' = '1 year 3 month'::interval OR dummy();
+ id 
+----
+(0 rows)
+
+SELECT id FROM itym_it WHERE val / 'NaN' = '1 year 3 month'::interval;
+ERROR:  OCI_ERROR - ORA-01722: 数値が無効です。
+
+SELECT id FROM itym_it WHERE val / 'NaN' = '1 year 3 month'::interval OR dummy();
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itds6_it WHERE val / 1 = '-1 day 12:34:56.123456'::interval;
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itds6_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalds_6" WHERE (("val" / 1) = INTERVAL '-1 12:34:56.123456' DAY(9) TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itds6_it WHERE val / 2 = '-18:17:28.061728'::interval;
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itds6_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalds_6" WHERE (("val" / 2) = INTERVAL '-18:17:28.061728' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itds6_it WHERE val / 0.5 = '-73:09:52.246912'::interval;
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itds6_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalds_6" WHERE (("val" / 0.5) = INTERVAL '-3 1:09:52.246912' DAY(9) TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itds6_it WHERE val / 'Inf' = '-2 days -25:09:52.246912'::interval;
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itds6_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalds_6" WHERE (("val" / binary_double_infinity) = INTERVAL '-3 1:09:52.246912' DAY(9) TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM itds6_it WHERE val / 'NaN' = '-2 days -25:09:52.246912'::interval;
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on itds6_it
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."intervalds_6" WHERE (("val" / binary_double_nan) = INTERVAL '-3 1:09:52.246912' DAY(9) TO SECOND(6))
+(2 rows)
+
+SELECT id FROM itds6_it WHERE val / 1 = '-1 day 12:34:56.123456'::interval;
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 1 = '-1 day 12:34:56.123456'::interval OR dummy();
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 2 = '-18:17:28.061728'::interval;
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 2 = '-18:17:28.061728'::interval OR dummy();
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 0.5 = '-73:09:52.246912'::interval;
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 0.5 = '-73:09:52.246912'::interval OR dummy();
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM itds6_it WHERE val / 'Inf' = '-2 days -25:09:52.246912'::interval;
+ERROR:  OCI_ERROR - ORA-01426: 数値オーバーフローが発生しました
+
+SELECT id FROM itds6_it WHERE val / 'Inf' = '-2 days -25:09:52.246912'::interval OR dummy();
+ id 
+----
+(0 rows)
+
+SELECT id FROM itds6_it WHERE val / 'NaN' = '-2 days -25:09:52.246912'::interval;
+ERROR:  OCI_ERROR - ORA-01722: 数値が無効です。
+
+SELECT id FROM itds6_it WHERE val / 'NaN' = '-2 days -25:09:52.246912'::interval OR dummy();
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 year -3 month'::interval / val = '-7 month'::interval;
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-1-3' YEAR(9) TO MONTH / "val") = INTERVAL '-0-7' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 year'::interval / val = '-6 month'::interval;
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-1-0' YEAR(9) TO MONTH / "val") = INTERVAL '-0-6' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 month'::interval / val = '-2 month'::interval;
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-0-1' YEAR(9) TO MONTH / "val") = INTERVAL '-0-2' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 day -12:34:56.123456'::interval / val = '-18:17:28.061728'::interval;
+                                                                                           QUERY PLAN                                                                                            
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-1 12:34:56.123456' DAY(9) TO SECOND(6) / "val") = INTERVAL '-18:17:28.061728' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 day'::interval / val = '-12:00:00'::interval;
+                                                                                    QUERY PLAN                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-1 0:00:00' DAY(9) TO SECOND(6) / "val") = INTERVAL '-12:00:00' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 hour'::interval / val = '-00:30:00'::interval;
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-1:00:00' HOUR TO SECOND(6) / "val") = INTERVAL '-0:30:00' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 minute'::interval / val = '-00:00:30'::interval;
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-0:01:00' HOUR TO SECOND(6) / "val") = INTERVAL '-0:00:30' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-1 second'::interval / val = '-00:00:00.5'::interval;
+                                                                                  QUERY PLAN                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE ((INTERVAL '-0:00:01' HOUR TO SECOND(6) / "val") = INTERVAL '-0:00:00.5' HOUR TO SECOND(6))
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM binary_double_precision WHERE '-0.000005 second'::interval / val BETWEEN '-00:00:00.000003'::interval AND '-00:00:00.000002'::interval;
+                                                                                                                                                QUERY PLAN                                                                                                                                                 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on binary_double_precision
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."binary_double_precision" WHERE (((INTERVAL '-0:00:00.000005' HOUR TO SECOND(6) / "val") >= INTERVAL '-0:00:00.000003' HOUR TO SECOND(6)) AND ((INTERVAL '-0:00:00.000005' HOUR TO SECOND(6) / "val") <= INTERVAL '-0:00:00.000002' HOUR TO SECOND(6)))
+(2 rows)
+
+SELECT id FROM binary_double_precision WHERE '-1 year -3 month'::interval / val = '-7 month'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 year -3 month'::interval / val = '-7 month -15 day'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 year'::interval / val = '-6 month'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 year'::interval / val = '-6 month'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 month'::interval / val = '-2 month'::interval;
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 month'::interval / val = '-2 month'::interval OR dummy();
+ id 
+----
+  2
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 day -12:34:56.123456'::interval / val = '-18:17:28.061728'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 day -12:34:56.123456'::interval / val = '-18:17:28.061728'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 day'::interval / val = '-12:00:00'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 day'::interval / val = '-12:00:00'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 hour'::interval / val = '-00:30:00'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 hour'::interval / val = '-00:30:00'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 minute'::interval / val = '-00:00:30'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 minute'::interval / val = '-00:00:30'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 second'::interval / val = '-00:00:00.5'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-1 second'::interval / val = '-00:00:00.5'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-0.000005 second'::interval / val BETWEEN '-00:00:00.000003'::interval AND '-00:00:00.000002'::interval;
+ id 
+----
+  5
+(1 row)
+
+SELECT id FROM binary_double_precision WHERE '-0.000005 second'::interval / val BETWEEN '-00:00:00.000003'::interval AND '-00:00:00.000002'::interval OR dummy();
+ id 
+----
+  5
+(1 row)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE intervalym_interval_1 / binary_double_precision_1 = '-2 year -4 month'::interval;
+                                                                                                                                                                                                                                                               QUERY PLAN                                                                                                                                                                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("intervalym_interval_1" / "binary_double_precision_1") = INTERVAL '-2-4' YEAR(9) TO MONTH)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE intervalds6_interval_1 / binary_double_precision_1 = '-2 day -25:09:52.246912'::interval;
+                                                                                                                                                                                                                                                                        QUERY PLAN                                                                                                                                                                                                                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("intervalds6_interval_1" / "binary_double_precision_1") = INTERVAL '-3 1:09:52.246912' DAY(9) TO SECOND(6))
+(2 rows)
+
+SELECT id FROM all_type WHERE intervalym_interval_1 / binary_double_precision_1 = '-2 year -4 month'::interval;
+ id 
+----
+  6
+  7
+(2 rows)
+
+SELECT id FROM all_type WHERE intervalym_interval_1 / binary_double_precision_1 = '-2 year -4 month'::interval OR dummy();
+ id 
+----
+  6
+  7
+(2 rows)
+
+SELECT id FROM all_type WHERE intervalds6_interval_1 / binary_double_precision_1 = '-2 day -25:09:52.246912'::interval;
+ id 
+----
+  6
+  7
+(2 rows)
+
+SELECT id FROM all_type WHERE intervalds6_interval_1 / binary_double_precision_1 = '-2 day -25:09:52.246912'::interval OR dummy();
+ id 
+----
+  6
+  7
+(2 rows)
+

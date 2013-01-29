@@ -1,0 +1,483 @@
+ALTER SESSION SET NLS_LANGUAGE = 'AMERICAN';
+
+-- binary_double
+TRUNCATE TABLE "oracle_fdw"."binary_double_precision";
+INSERT INTO "oracle_fdw"."binary_double_precision" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."binary_double_precision" VALUES( 2, 0.5);
+INSERT INTO "oracle_fdw"."binary_double_precision" VALUES( 3, -0.5);
+INSERT INTO "oracle_fdw"."binary_double_precision" VALUES( 4, -2);
+INSERT INTO "oracle_fdw"."binary_double_precision" VALUES( 5, 2);
+
+-- number
+TRUNCATE TABLE "oracle_fdw"."number_integer";
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 2, -1);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 3, 1);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 4, 2);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 5, -2);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 6, 30);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 7, 365);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 8, 395);
+INSERT INTO "oracle_fdw"."number_integer" VALUES( 9, -30);
+
+-- date
+TRUNCATE TABLE "oracle_fdw"."date_";
+INSERT INTO "oracle_fdw"."date_" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."date_" VALUES( 2, TO_DATE('2004-02-01', 'SYYYY-MM-DD'));
+INSERT INTO "oracle_fdw"."date_" VALUES( 3, TO_DATE('2100-02-01', 'SYYYY-MM-DD'));
+INSERT INTO "oracle_fdw"."date_" VALUES( 4, TO_DATE('2400-02-01', 'SYYYY-MM-DD'));
+INSERT INTO "oracle_fdw"."date_" VALUES( 5, TO_DATE('2011-02-01', 'SYYYY-MM-DD'));
+INSERT INTO "oracle_fdw"."date_" VALUES( 6, TO_DATE('-2011-02-01', 'SYYYY-MM-DD'));
+
+-- timestamp
+TRUNCATE TABLE "oracle_fdw"."timestamp_6";
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 2, TO_TIMESTAMP('2004-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 3, TO_TIMESTAMP('2100-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 4, TO_TIMESTAMP('2400-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 5, TO_TIMESTAMP('2011-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamp_6" VALUES( 6, TO_TIMESTAMP('-2011-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+
+TRUNCATE TABLE "oracle_fdw"."timestamp_9";
+INSERT INTO "oracle_fdw"."timestamp_9" VALUES(1, TO_TIMESTAMP('2011-02-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'));
+
+-- timestamp with time zone
+TRUNCATE TABLE "oracle_fdw"."timestamptz_6";
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 2, TO_TIMESTAMP_TZ('2004-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 3, TO_TIMESTAMP_TZ('2100-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 4, TO_TIMESTAMP_TZ('2400-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 5, TO_TIMESTAMP_TZ('2011-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestamptz_6" VALUES( 6, TO_TIMESTAMP_TZ('-2011-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+
+TRUNCATE TABLE "oracle_fdw"."timestamptz_9";
+INSERT INTO "oracle_fdw"."timestamptz_9" VALUES(1, TO_TIMESTAMP_TZ('2011-02-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'));
+
+-- timestamp with local time zone
+TRUNCATE TABLE "oracle_fdw"."timestampltz_6";
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 2, TO_TIMESTAMP_TZ('2004-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 3, TO_TIMESTAMP_TZ('2100-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 4, TO_TIMESTAMP_TZ('2400-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 5, TO_TIMESTAMP_TZ('2011-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+INSERT INTO "oracle_fdw"."timestampltz_6" VALUES( 6, TO_TIMESTAMP_TZ('-2011-02-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'));
+
+TRUNCATE TABLE "oracle_fdw"."timestampltz_9";
+INSERT INTO "oracle_fdw"."timestampltz_9" VALUES(1, TO_TIMESTAMP_TZ('2011-02-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'));
+
+-- interval year to month
+TRUNCATE TABLE "oracle_fdw"."intervalym_";
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 2, INTERVAL '-1' YEAR);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 3, INTERVAL '1' YEAR);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 4, INTERVAL '-3' MONTH);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 5, INTERVAL '3' MONTH);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 6, INTERVAL '-1-3' YEAR TO MONTH);
+INSERT INTO "oracle_fdw"."intervalym_" VALUES( 7, INTERVAL '1-3' YEAR TO MONTH);
+
+-- interval day to second
+TRUNCATE TABLE "oracle_fdw"."intervalds_6";
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 1, NULL);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 2, INTERVAL '-1 12:34:56.123456' DAY TO SECOND(6));
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 3, INTERVAL '1 12:34:56.123456' DAY TO SECOND(6));
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 4, INTERVAL '-1' DAY);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 5, INTERVAL '1' DAY);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 6, INTERVAL '-1' HOUR);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 7, INTERVAL '1' HOUR);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 8, INTERVAL '-1' MINUTE);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES( 9, INTERVAL '1' MINUTE);
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES(10, INTERVAL '-1.123456' SECOND(6));
+INSERT INTO "oracle_fdw"."intervalds_6" VALUES(11, INTERVAL '1.123456' SECOND(6));
+
+TRUNCATE TABLE "oracle_fdw"."intervalds_9";
+INSERT INTO "oracle_fdw"."intervalds_9" VALUES( 1, INTERVAL '1 12:34:56.123456789' DAY(9) TO SECOND(9));
+
+ALTER SESSION SET TIME_ZONE = 'Asia/Tokyo';
+ALTER SESSION SET NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD BC HH24:MI:SS.FF9';
+ALTER SESSION SET NLS_TIMESTAMP_TZ_FORMAT = 'YYYY-MM-DD BC HH24:MI:SS.FF9 TZR';
+ALTER SESSION SET NLS_DATE_LANGUAGE = 'AMERICAN';
+
+TRUNCATE TABLE "oracle_fdw"."all_type";
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	1,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	2,
+	binary_float_nan,
+	NULL,
+	binary_double_nan,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	3,
+	binary_float_infinity,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	4,
+	-binary_float_infinity,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	30,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	INTERVAL '3-3' YEAR TO MONTH,	INTERVAL '0' YEAR,
+	INTERVAL '3 13:36:59.246912' DAY TO SECOND(6), INTERVAL '0' DAY,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	5,
+	-1, 0,
+	-2, 0,
+	-1, 0,
+	30, 0,
+	-1, 0,
+	-1e100, 0,
+	-1e-100, 0,
+	-1, 0,
+	-1, 0,
+	-1, 0,
+	'aAあア亜阿', 'bBいイ異伊',
+	'aAあア亜阿', 'bBいイ異伊',
+	'aAあア亜阿', 'bBいイ異伊',
+	'aAあア亜阿', 'bBいイ異伊',
+	'aAあア亜阿',
+	'aAあア亜阿', 'bBいイ異伊',
+	'aAあア亜阿', 'bBいイ異伊',
+	TO_DATE('2011-02-01', 'SYYYY-MM-DD'), TO_DATE('2011-01-01', 'SYYYY-MM-DD'),
+	TO_TIMESTAMP('2011-02-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('2011-02-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('2011-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('2011-02-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('2011-02-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP('2011-02-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('2011-02-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	INTERVAL '3' YEAR,	INTERVAL '3' MONTH,
+	INTERVAL '3' DAY, INTERVAL '13:36:59.246912' HOUR TO SECOND,
+	INTERVAL '-1 00:00:00.000001999' DAY TO SECOND(9), INTERVAL '1' DAY,
+	'AAAAAA', 'BBBBBB',
+	'AAAAAA', 'BBBBBB',
+	bfilename('DIR', 'data/bfile1.txt'), bfilename('DIR', 'data/bfile2.txt')
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	6,
+	0, 0,
+	-0.5, 0,
+	0, 0,
+	30, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	0, 0,
+	'bBいイ異伊', 'bBいイ異伊',
+	'bBいイ異伊', 'bBいイ異伊',
+	'bBいイ異伊', 'bBいイ異伊',
+	'bBいイ異伊', 'bBいイ異伊',
+	'bBいイ異伊',
+	'bBいイ異伊', 'bBいイ異伊',
+	'bBいイ異伊', 'bBいイ異伊',
+	TO_DATE('2100-02-01', 'SYYYY-MM-DD'), TO_DATE('2100-01-01', 'SYYYY-MM-DD'),
+	TO_TIMESTAMP('0001-01-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('0001-01-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	INTERVAL '1-2' YEAR TO MONTH,	INTERVAL '2-1' YEAR TO MONTH,
+	INTERVAL '1 12:34:56.123456' DAY TO SECOND(6), INTERVAL '2 01:02:03.123456' DAY TO SECOND,
+	INTERVAL '1' DAY, INTERVAL '1' DAY,
+	'BBBBBB', 'BBBBBB',
+	'BBBBBB', 'BBBBBB',
+	bfilename('DIR', 'data/bfile2.txt'), bfilename('DIR', 'data/bfile2.txt')
+);
+INSERT INTO "oracle_fdw"."all_type" VALUES(
+	7,
+	1, 0,
+	0.5, 0,
+	1, 0,
+	30, 0,
+	1, 0,
+	1e100, 0,
+	1e-100, 0,
+	1, 0,
+	1, 0,
+	1, 0,
+	'cCうウ卯宇', 'bBいイ異伊',
+	'cCうウ卯宇', 'bBいイ異伊',
+	'cCうウ卯宇', 'bBいイ異伊',
+	'cCうウ卯宇', 'bBいイ異伊',
+	'cCうウ卯宇',
+	'cCうウ卯宇', 'bBいイ異伊',
+	'cCうウ卯宇', 'bBいイ異伊',
+	TO_DATE('2400-02-01', 'SYYYY-MM-DD'), TO_DATE('2400-01-01', 'SYYYY-MM-DD'),
+	TO_TIMESTAMP('0001-01-02 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('0001-01-01 00:00:00', 'SYYYY-MM-DD HH24:MI:SS'),
+	TO_TIMESTAMP('0001-01-02 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001', 'SYYYY-MM-DD HH24:MI:SS.FF6'),
+	TO_TIMESTAMP('0001-01-02 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP('0001-01-01 00:00:00.000001999', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-02 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF6 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-02 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	TO_TIMESTAMP_TZ('0001-01-01 00:00:00.000001999 Asia/Tokyo', 'SYYYY-MM-DD HH24:MI:SS.FF9 TZR'),
+	INTERVAL '-1-2' YEAR TO MONTH,	INTERVAL '4-5' YEAR TO MONTH,
+	INTERVAL '-1 12:34:56.123456' DAY TO SECOND(6), INTERVAL '5 02:11:55.370368' DAY TO SECOND,
+	INTERVAL '2 00:00:00.000001999' DAY TO SECOND(9), INTERVAL '1' DAY,
+	'CCCCCC', 'BBBBBB',
+	'CCCCCC', 'BBBBBB',
+	bfilename('DIR', 'data/bfile3.txt'), bfilename('DIR', 'data/bfile2.txt')
+);
+
+INSERT INTO "oracle_fdw"."char_b" VALUES(6, 'aaaあああaaaあああaあaあ''''''___%%%   ');
+INSERT INTO "oracle_fdw"."varchar2_" VALUES(6, 'aaaあああaaaあああaあaあ''''''___%%%   ');
+INSERT INTO "oracle_fdw"."clob_" VALUES(6, 'aaaあああaaaあああaあaあ''''''___%%%   ');
+
+EXIT

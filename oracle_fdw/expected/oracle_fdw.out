@@ -1,0 +1,295 @@
+\c contrib_regression_utf8
+SET DateStyle = 'Postgres, YMD';
+-- プラン表示
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 ORDER BY c1;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(4 rows)
+
+-- simple query
+ALTER USER MAPPING FOR PUBLIC SERVER ora_server OPTIONS (SET user 'invalid_user');
+SELECT * FROM ft1 ORDER BY c1; -- username ERROR
+ERROR:  could not establish connection
+DETAIL:  OCI_ERROR - ORA-01017: ユーザー名/パスワードが無効です。ログオンは拒否されました。
+
+ALTER USER MAPPING FOR PUBLIC SERVER ora_server OPTIONS (DROP user);
+SELECT * FROM ft1 ORDER BY c1;
+ERROR:  user is required
+ALTER USER MAPPING FOR PUBLIC SERVER ora_server OPTIONS (ADD user 'oracle_fdw');
+SELECT * FROM ft1 ORDER BY c1;
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  1 | A     | a     | Sat Jan 01 12:34:56 2011
+  2 | BB    | bb    | Sun Jan 02 12:34:56 2011
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(6 rows)
+
+ALTER SERVER ora_server OPTIONS (SET dbname 'aaa');
+SELECT * FROM ft1 ORDER BY c1;
+ERROR:  could not connect to server "ora_server"
+DETAIL:  OCI_ERROR - ORA-12154: TNS: 指定された接続識別子を解決できませんでした
+
+ALTER SERVER ora_server OPTIONS (DROP dbname);
+SELECT * FROM ft1 ORDER BY c1;
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  1 | A     | a     | Sat Jan 01 12:34:56 2011
+  2 | BB    | bb    | Sun Jan 02 12:34:56 2011
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(6 rows)
+
+ALTER FOREIGN TABLE ft1 OPTIONS (SET relname 't2');
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 ORDER BY c1;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t2"
+(4 rows)
+
+SELECT * FROM ft1 ORDER BY c1; -- colname ERROR
+ERROR:  OCI_ERROR - ORA-00904: "c4": 無効な識別子です。
+
+ALTER FOREIGN TABLE ft1 OPTIONS (SET relname 't1');
+-- char(5) length
+EXPLAIN (COSTS FALSE) SELECT c1, c2, length(c2), octet_length(c2), c3, length(c3), octet_length(c3), c4 FROM ft1 ORDER BY c1;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(4 rows)
+
+SELECT c1, c2, length(c2), octet_length(c2), c3, length(c3), octet_length(c3), c4 FROM ft1 ORDER BY c1;
+ c1 |  c2   | length | octet_length |  c3   | length | octet_length |            c4            
+----+-------+--------+--------------+-------+--------+--------------+--------------------------
+  1 | A     |      1 |            1 | a     |      5 |            5 | Sat Jan 01 12:34:56 2011
+  2 | BB    |      2 |            2 | bb    |      5 |            5 | Sun Jan 02 12:34:56 2011
+  3 | CCC   |      3 |            3 | ccc   |      5 |            5 | Mon Jan 03 12:34:56 2011
+  4 | DDDD  |      4 |            4 | dddd  |      5 |            5 | Tue Jan 04 12:34:56 2011
+  5 | あ    |      1 |            3 | ア    |      3 |            5 | Wed Jan 05 12:34:56 2011
+  6 |   A   |      5 |            5 | abcba |      5 |            5 | Wed Jan 05 12:34:56 2011
+(6 rows)
+
+-- query with projection
+EXPLAIN (COSTS FALSE) SELECT c1 FROM ft1 ORDER BY c1;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Remote SQL: SELECT "c1", NULL, NULL, NULL FROM "oracle_fdw"."t1"
+(4 rows)
+
+SELECT c1 FROM ft1 ORDER BY c1;
+ c1 
+----
+  1
+  2
+  3
+  4
+  5
+  6
+(6 rows)
+
+EXPLAIN (COSTS FALSE) SELECT c1, length(c2), length(c3) FROM ft2 ORDER BY c1;
+                             QUERY PLAN                             
+--------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft2
+         Remote SQL: SELECT "c1", "c2", "c3" FROM "oracle_fdw"."t2"
+(4 rows)
+
+SELECT c1, length(c2), length(c3) FROM ft2 ORDER BY c1;
+ c1 | length | length 
+----+--------+--------
+  1 |   2000 |   1000
+  2 |   4000 |   3000
+(2 rows)
+
+-- join two foreign tables
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 JOIN ft2 ON (ft1.c1 = ft2.c1) ORDER BY ft1.c1;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Merge Join
+   Merge Cond: (ft1.c1 = ft2.c1)
+   ->  Sort
+         Sort Key: ft1.c1
+         ->  Foreign Scan on ft1
+               Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+   ->  Sort
+         Sort Key: ft2.c1
+         ->  Foreign Scan on ft2
+               Remote SQL: SELECT "c1", "c2", "c3" FROM "oracle_fdw"."t2"
+(10 rows)
+
+--SELECT * FROM ft1 JOIN ft2 ON (ft1.c1 = ft2.c1) ORDER BY ft1.c1;
+-- join itself
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 t1 JOIN ft1 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Merge Join
+   Merge Cond: (t1.c1 = t2.c1)
+   ->  Sort
+         Sort Key: t1.c1
+         ->  Foreign Scan on ft1 t1
+               Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+   ->  Sort
+         Sort Key: t2.c1
+         ->  Foreign Scan on ft1 t2
+               Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(10 rows)
+
+SELECT * FROM ft1 t1 JOIN ft1 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1;
+ c1 |  c2   |  c3   |            c4            | c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------+----+-------+-------+--------------------------
+  1 | A     | a     | Sat Jan 01 12:34:56 2011 |  1 | A     | a     | Sat Jan 01 12:34:56 2011
+  2 | BB    | bb    | Sun Jan 02 12:34:56 2011 |  2 | BB    | bb    | Sun Jan 02 12:34:56 2011
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011 |  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011 |  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011 |  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011 |  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(6 rows)
+
+-- outer join
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY 1,2,3,4,5,6;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Sort
+   Sort Key: t1.c1, t1.c2, t1.c3, t1.c4, t2.c1, t2.c2
+   ->  Merge Left Join
+         Merge Cond: (t1.c1 = t2.c1)
+         ->  Sort
+               Sort Key: t1.c1
+               ->  Foreign Scan on ft1 t1
+                     Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+         ->  Sort
+               Sort Key: t2.c1
+               ->  Foreign Scan on ft2 t2
+                     Remote SQL: SELECT "c1", "c2", "c3" FROM "oracle_fdw"."t2"
+(12 rows)
+
+--SELECT * FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY 1,2,3,4,5,6;
+-- WHERE clause
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 WHERE c1 = 1 AND c2 < lower('AAA') AND c4 < now() and c4 < clock_timestamp();
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on ft1
+   Filter: ((c4 < now()) AND (c4 < clock_timestamp()))
+   Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1" WHERE (("c2" < 'aaa') AND ("c1" = 1))
+(3 rows)
+
+SELECT * FROM ft1 WHERE c1 = 1 AND c2 < lower('AAA') AND c4 < now() and c4 < clock_timestamp();
+ c1 | c2 |  c3   |            c4            
+----+----+-------+--------------------------
+  1 | A  | a     | Sat Jan 01 12:34:56 2011
+(1 row)
+
+-- prepared statement
+PREPARE st(int) AS SELECT * FROM ft1 WHERE c1 > $1 ORDER BY c1;
+EXPLAIN (COSTS FALSE) EXECUTE st(1);
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Filter: (c1 > $1)
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(5 rows)
+
+EXECUTE st(1);
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  2 | BB    | bb    | Sun Jan 02 12:34:56 2011
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(5 rows)
+
+EXPLAIN (COSTS FALSE) EXECUTE st(2);
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Filter: (c1 > $1)
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(5 rows)
+
+EXECUTE st(2);
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(4 rows)
+
+DEALLOCATE st;
+-- change datastyle
+SET DATESTYLE = 'Postgres, MDY';
+SELECT * FROM ft1 ORDER BY c4;
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  1 | A     | a     | Sat Jan 01 12:34:56 2011
+  2 | BB    | bb    | Sun Jan 02 12:34:56 2011
+  3 | CCC   | ccc   | Mon Jan 03 12:34:56 2011
+  4 | DDDD  | dddd  | Tue Jan 04 12:34:56 2011
+  5 | あ    | ア    | Wed Jan 05 12:34:56 2011
+  6 |   A   | abcba | Wed Jan 05 12:34:56 2011
+(6 rows)
+
+SET DATESTYLE = 'Postgres, DMY';
+SELECT * FROM ft1 ORDER BY c4;
+ c1 |  c2   |  c3   |            c4            
+----+-------+-------+--------------------------
+  1 | A     | a     | Sat 01 Jan 12:34:56 2011
+  2 | BB    | bb    | Sun 02 Jan 12:34:56 2011
+  3 | CCC   | ccc   | Mon 03 Jan 12:34:56 2011
+  4 | DDDD  | dddd  | Tue 04 Jan 12:34:56 2011
+  5 | あ    | ア    | Wed 05 Jan 12:34:56 2011
+  6 |   A   | abcba | Wed 05 Jan 12:34:56 2011
+(6 rows)
+
+-- timestamp to text
+ALTER FOREIGN TABLE ft1 ALTER c4 TYPE text;
+-- simple query
+EXPLAIN (COSTS FALSE) SELECT * FROM ft1 ORDER BY c1;
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Sort
+   Sort Key: c1
+   ->  Foreign Scan on ft1
+         Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(4 rows)
+
+SELECT * FROM ft1 ORDER BY c1;
+ c1 |  c2   |  c3   |              c4               
+----+-------+-------+-------------------------------
+  1 | A     | a     | 2011-01-01 AD 12:34:56.000000
+  2 | BB    | bb    | 2011-01-02 AD 12:34:56.000000
+  3 | CCC   | ccc   | 2011-01-03 AD 12:34:56.000000
+  4 | DDDD  | dddd  | 2011-01-04 AD 12:34:56.000000
+  5 | あ    | ア    | 2011-01-05 AD 12:34:56.000000
+  6 |   A   | abcba | 2011-01-05 AD 12:34:56.000000
+(6 rows)
+
+-- max_valu_len
+ALTER SERVER ora_server OPTIONS (ADD max_value_len '1073741823');
+ERROR:  invalid value for max_value_len: "1073741823"
+ALTER SERVER ora_server OPTIONS (ADD max_value_len '1073741822');
+ALTER SERVER ora_server OPTIONS (DROP max_value_len);

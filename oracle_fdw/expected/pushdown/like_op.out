@@ -1,0 +1,436 @@
+\c contrib_regression_utf8
+SET DateStyle = 'ISO,YMD';
+SET IntervalStyle = 'sql_standard';
+SET TIMEZONE = 'Asia/Tokyo';
+-- 'LIKE' operator
+-- 850 : textlike
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'aAあア亜阿';
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'a_あ%阿%';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'aE_あE%阿E%EE';
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'aE_あE%阿E%EE' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'a\_あ\%阿\%\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'a\\_あ\\%阿\\%\\\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM vc2_vc WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Foreign Scan on vc2_vc
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."varchar2_" WHERE ("val" LIKE 'a\_あ\%阿\%E' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'aAあア亜阿';
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'a_あ%阿%';
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'aE_あE%阿E%EE';
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'aE_あE%阿E%EE' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'a\_あ\%阿\%\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'a\\_あ\\%阿\\%\\\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM clob_text WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on clob_text
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."clob_" WHERE ("val" LIKE 'a\_あ\%阿\%E' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'a_あ%阿%';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'aE_あE%阿E%EE';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE 'aAあア亜阿';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE val LIKE 'a_あ%阿%';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE val LIKE 'aE_あE%阿E%EE';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM clob_text WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+-- 1631	: bpcharlike
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'aAあア亜阿';
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'a_あ%阿%';
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'aE_あE%阿E%EE';
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'aE_あE%阿E%EE' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'a\_あ\%阿\%\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'aAあア亜阿' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'a_あ%阿%' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'a\\_あ\\%阿\\%\\\\' ESCAPE '\')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'a\_あ\%阿\%E' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'aAあア亜阿';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'a_あ%阿%';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM char_char WHERE val LIKE 'aE_あE%阿E%EE';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'a\\_あ\\%阿\\%\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'aAあア亜阿' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'a_あ%阿%' ESCAPE 'E';
+ id 
+----
+  3
+(1 row)
+
+SELECT id FROM char_char WHERE val LIKE E'a\\_あ\\%阿\\%\\\\' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'aE_あE%阿E%EE' ESCAPE 'E';
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'\\';
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE '' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'\\';
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'\\E';
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE 'E' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'\\E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'\\E';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'\\E';
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'\\_';
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE '\_' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'\\_';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'\\_';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'\\_';
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'\\%';
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE '\%' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'\\%';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'\\%';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'\\%';
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM char_char WHERE val LIKE E'\\\\';
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Foreign Scan on char_char
+   Remote SQL: SELECT "id", NULL FROM "oracle_fdw"."char_b" WHERE ("val" LIKE '\\' ESCAPE '\')
+(2 rows)
+
+SELECT id FROM char_char WHERE val LIKE E'\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM vc2_vc WHERE val LIKE E'\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM clob_text WHERE val LIKE E'\\\\';
+ id 
+----
+(0 rows)
+
+SELECT id FROM char_char WHERE val LIKE '%';
+ id 
+----
+  3
+  4
+  5
+  6
+(4 rows)
+
+SELECT id FROM char_char WHERE val LIKE 'aaaあああaaaあああaあaあ''''''\_\_\_\%\%\%                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ';
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM char_char WHERE val LIKE 'aaaあああaaaあああaあaあ''''''\_\_\_\%\%\%%';
+ id 
+----
+  6
+(1 row)
+

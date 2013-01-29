@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+
+
+<title>PostgreSQLとOracleの仕様の相異</title>
+<!-- Uncoment after the tool has been hosted somewhere.
+<link rel="home" title="oracle_fdw" href="http://pgstatsinfo.projects.postgresql.org/index.html">
+-->
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head><body>
+<h1 id="oracle_fdw">oracle_fdw 1.0.0</h1>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>
+</div>
+<hr>
+
+<h2>PostgreSQLとOracleの仕様の相異</h2>
+<p>oracle_fdwでは、WHERE句に指定した条件のうち、評価結果がPostgreSQLとOracleで同じになるものをOracleに発行するクエリに含めます。
+しかし、PostgreSQLとOracleの仕様の相異のため、Oracleに発行するWHERE句の条件の中にも、ある限られた条件の下では、PostgreSQLとOracleで異なる結果を返す場合があります。
+このため、そのような条件がOracle側で評価されると、意図しないSELECT結果となったりエラー終了する場合があります。
+この問題は、SELECT文の<a href="http://www.postgresql.org/docs/9.1/static/queries-with.html">CTE</a>を使用して回避できます。
+評価結果がPostgreSQLとOracleで同じとなる条件はWITH句の副問い合わせに指定し、異なる可能性のある条件は主問い合わせのWHERE句に指定してください。
+以下にCTEを使用したSELECT文の例を示します。</p>
+<pre>
+postgres=# WITH filtered_accounts AS (
+postgres(# SELECT "AID", "BID", "ABALANCE", "FILLER" FROM remote_accounts WHERE "AID" = 1
+postgres(# )
+postgres-# SELECT "AID", "BID", "ABALANCE" FROM filtered_accounts WHERE "FILLER" = '';
+
+ AID | BID | ABALANCE
+-----+-----+----------
+   1 |   1 |        0
+(1 row)
+
+postgres=#
+</pre>
+
+<p>SELECT結果の相異に影響する、PostgreSQLとOracleの仕様の相異を以下に示します。WHERE句で指定した条件が以下の条件に合致する場合は、CTEの外にその条件を指定してください。</p>
+
+<table>
+<thead>
+<tr><th>相異点</th><th>PostgreSQLの仕様</th><th>Oracleの仕様</th><th>SELECT結果の例</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>WHERE句に指定できないデータ型</td>
+<td>全てのデータ型の列をWHERE句で指定できます。</td>
+<td>LONG型の列およびLONG RAW型の列は、WHERE句では指定できません（IS NULLおよびIS NOT NULLは除く）。</td>
+<td>PostgreSQL側でtext型やvarchar型にマッピングしたLONG型の列をWHERE句の条件に指定した場合、PostgreSQLでは正しく評価されますが、Oracleではエラーとなります。</td>
+</tr>
+<tr>
+<td>比較演算できないデータ型</td>
+<td>oracle_fdwがデータ型マッピングをサポートするデータ型の範囲では、比較演算できないデータ型はありません。</td>
+<td>ラージオブジェクトの値は比較演算できません。WHERE句だけでなく、SELECT句などでも使用できません。比較演算を含むSELECT文を発行するとエラーとなります。</td>
+<td>PostgreSQL側でtext型やvarchar型にマッピングしたラージオブジェクトの列をWHERE句の条件に指定した場合、PostgreSQLでは正しく評価されますが、Oracleではエラーとなります。</td>
+</tr>
+<tr>
+<td>扱える数値の制限</td>
+<td>扱える数値に制限はありません。（ドキュメントのnumericの範囲に「no limit」と書かれています。）</td>
+<td>1.0×10<sup>-130</sup>以上で1.0×10<sup>126</sup>未満の数値が使用できます。1.0×10<sup>-130</sup>以下の絶対値を持つ算術式を指定した場合は不正な値となります。1.0×10<sup>126</sup>以上の絶対値を持つ算術式を指定した場合はエラーとなります。精度は小数点の位置によって39桁または40桁です。精度を超えた値は四捨五入されます。</td>
+<td>1.0×10<sup>126</sup>以上の絶対値となる算術演算の結果や数値リテラルを、PostgreSQLでは扱えますが、Oracleではエラーとなります。
+1.0×10<sup>-130</sup>以下の絶対値となる算術演算の結果や数値リテラルを、PostgreSQLでは扱えますが、Oracleでは不正な値となります。
+また、有効桁数が40桁より大きい数値を、PostgreSQLではそのまま扱えますが、Oracleでは39桁または40桁に四捨五入したうえで使用します。
+</td>
+</tr>
+<tr>
+<td>0による除算</td>
+<td>全ての数値データ型で、0による除算を行うとエラーとなります。</td>
+<td>NUMBER型を使用して、0による除算を行うとエラーとなります。
+BINARY_FLOAT型およびBINARY_DOUBLE型を使用して、0による除算を行うと以下の結果が得られます。
+<ul>
+<li>0 / 0 = NaN</li>
+<li>NaN / 0 = NaN</li>
+<li>&plusmn;<i>n</i> / 0 = &plusmn;Inf</li>
+<li>&plusmn;Inf / 0 = &plusmn;Inf</li>
+</ul>
+</td>
+<td>PostgreSQL側でreal型にマッピングしたBINARY_FLOAT型の列をWHERE句の条件で除算の分母に指定した場合、PostgreSQLではOracleのテーブルに0が格納されていた場合にエラーとなりますが、Oracleではエラーとなりません。</td>
+</tr>
+<tr>
+<td>扱える文字列の最大サイズ</td>
+<td>扱える文字列の最大サイズは1Gバイトです。</td>
+<td>テキストリテラルの最大サイズは4000バイトです。また、文字列結合対象のデータ型がCHAR型またはVARCHAR2型の場合は、結果の最大サイズは4000バイトとなり、どちらかの引数がCLOB型の場合は一時CLOBの制限サイズに従います。扱える最大サイズを超えるとエラーとなります。</td>
+<td>4000バイトを超えるテキストリテラルを、PostgreSQLでは指定することができますが、Oracleで指定するとエラーとなります。
+また、varchar型同士の文字列結合の結果のサイズが4000バイトを超えると、Oracleではエラーとなりますが、PostgreSQLでは正常に結合できます。</td>
+</tr>
+<tr>
+<td>空文字の扱い</td>
+<td>''(空文字)は長さ0の文字列として扱われます。</td>
+<td>''はNULLと同じ扱いです。</td>
+<td>「<i>文字型の列</i> = ''」の評価結果は、PostgreSQLでは列の値が空文字列ならばTRUEでそれ以外ならばFALSEとなりますが、Oracleでは常にFALSEとなります。</td>
+</tr>
+<tr>
+<td>NULLとの結合</td>
+<td>NULLと文字列の文字列結合結果はNULLです。</td>
+<td>文字列結合の際に、NULLは長さ0の文字列として扱われます。NULLとNULLでない文字列の文字列結合の結果は、NULLでない方の文字列が返されます。</td>
+<td>NULLと文字データ型の列を文字列結合した場合、PostgreSQLでは常にNULLを返しますが、Oracleでは文字データ型の列の値を返します。</td>
+</tr>
+<tr>
+<td>文字の比較</td>
+<td>postgresql.confのlc_collateで文字列の比較で使用するロケールを設定します。</td>
+<td>NLS_SORTとNLS_COMPの設定の組み合わせで文字列を比較する方法を決定します。</td>
+<td>'ハ' &gt; 'ば'の比較結果は、lc_collate='ja_JP.UTF-8'を設定したPostgreSQLではTRUEですが、NLS_COMP='ansi'とNLS_SORT='JAPANESE_M_CI'を設定したOracleではFALSEです。</td>
+</tr>
+<tr>
+<td>日付/時刻データ型が扱える範囲</td>
+<td>date型が扱える範囲は紀元前4713年から西暦5874897年です。また、timestamp型およびtimestamp with time zone型が扱える範囲は紀元前4713年から西暦294276年です。</td>
+<td>全ての日付/時刻データ型が扱える範囲は紀元前4712年から西暦9999年です。</td>
+<td>紀元前4713年や西暦9999年より未来の日付/時刻データ型の日付演算結果や定数を、PostgreSQLでは扱えますが、Oracleではエラーとなります。</td>
+</tr>
+<tr>
+<td>秒の小数点以下の精度</td>
+<td>日付/時刻データ型の秒の小数点以下の精度は最大6桁です。下限を超えた値は四捨五入されます。</td>
+<td>日付/時刻データ型の秒の小数点以下の精度は最大9桁です。上限を超える値は指定できません（TO_CAHR()関数などで指定する書式指定で9桁までしか指定ないためです）。</td>
+<td>Oracleに日付/時刻データ型で定義された列の秒の小数点以下の精度が7桁以上だった場合、PostgreSQLでは秒の小数点以下を6桁に切り捨てた上で使用しますが、Oracleではそのまま使用します。</td>
+</tr>
+<tr>
+<td>1888年より過去の時差</td>
+<td>1888年より過去のUTCとAsia/Tokyoの時差は+09:18:59です。(1888年は日本標準時が適用された年です。)</td>
+<td>1888年より過去のUTCとAsia/Tokyoの時差は+09:18:00です。</td>
+<td>1888年より過去でUTCの日付/時刻データ型の値と1888年より過去でAsia/Tokyoの日付/時刻データ型の値の差を算出すると、PostgreSQLの演算結果とOracleの演算結果で59秒のずれが出ます。</td>
+</tr>
+<tr>
+<td>使用する暦</td>
+<td>全ての期間をグレゴリオ暦として扱います（1582年10月5日から1582年10月14日も有効な日付として扱います）。</td>
+<td>ユリウス暦からグレゴリオ暦の切り替え時をサポートしており、1582年10月5日から1582年10月14日は存在しない日付として扱います。1582年10月4日の翌日は1582年10月15日となります。また、1582年10月5日から1582年10月14日がリテラルから入力された場合は、1582年10月15日として扱われます。</td>
+<td>1582年10月5日から1582年10月14日の日付/時刻データ型の値は、PostgreSQLではそのままの値で扱われますが、Oracleでは1582年10月15日として扱われます。また、ユリウス暦の期間とグレゴリオ暦の期間をまたいだ加減算は、PostgreSQLではまたがない期間と同様の演算結果が得られますが、Oracleではまたがない期間と10日ずれた演算結果が得られます。</td>
+</tr>
+<tr>
+<td>閏年の定義</td>
+<td>全ての期間について、以下のグレゴリオ暦の規則に従って閏年を設けます。
+<ul>
+<li>西暦年が4で割り切れる年は閏年にする。</li>
+<li>ただし、西暦年が100で割り切れる年は閏年にしない。</li>
+<li>ただし、西暦年が400で割り切れる年は閏年にする。</li>
+</ul>
+</td>
+<td>グレゴリオ暦が適用される期間はグレゴリオ暦の規則に従って閏年を設け、ユリウス暦が適用されていた期間は以下のユリウス暦の規則に従って閏年を設けます。
+<ul>
+<li>西暦年が4で割り切れる年は閏年にする。</li>
+</ul>
+</td>
+<td>1582年より過去で、かつ100で割り切れる年の閏日に関連する日付演算は、PostgreSQLの演算結果とOracleの演算結果で1日ずれが出ます。</td>
+</tr>
+<tr>
+<td>紀元前の扱い</td>
+<td>西暦1年の1年前は紀元前1年です。西暦1年の2年前は紀元前2年です。また、西暦0年および紀元前0年は存在せず、リテラルとして入力するとエラーとなります。</td>
+<td>西暦1年の1年前は西暦0年です。西暦1年の2年前は紀元前1年です。また、西暦0年はデータとして保持可能ですが、リテラルとして入力するとエラーとなります。</td>
+<td>紀元をまたいだ日付演算は、PostgreSQLの演算結果とOracleの演算結果で1年ずれます。</td>
+</tr>
+<tr>
+<td nowrap>月末日への加減算</td>
+<td>月末日の日付/時刻データ型の値にinterval型で年や月単位の加減算をした結果、不正な日付(2月31日など）となる場合は、有効な日付（2月28日など）に丸められます。</td>
+<td>月末日の日付/時刻データ型の値にINTERVAL YEAR TO MONTH型で年や月単位の加減算をした結果、不正な日付となる場合は、エラーとなります。</td>
+<td>大の月の月末日の日付/時刻データ型の値に小の月の月末日となるようなinterval型の値を加減算した場合、PostgreSQLでは小の月の月末日となりますが、Oracleではエラーとなります。
+</td>
+</tr>
+<tr>
+<td>タイムゾーンを含む日付/時刻データ型の値の加減算</td>
+<td>タイムゾーンを含む日付/時刻データ型の値にinterval型の値を加減算する場合、もとのタイムゾーンのまま加減算をします。</td>
+<td>タイムゾーンを含む日付/時刻データ型の値にinterval型の値を加減算する場合、タイムゾーンをUTCに変換してから加減算をした後、またもとのタイムゾーンに戻します。</td>
+<td>タイムゾーン変換前が月初でタイムゾーン変換後が大の月の末日となる日付/時刻データ型の値に奇数の月のinterval型の値を加減算した場合、PostgreSQLでは小の月の末日となりますが、Oracleではエラーとなります。</td>
+</tr>
+<tr>
+<td>interval型が扱える値の範囲</td>
+<td>interval型は、年、月、日、時、分、秒の全てのフィールドの値をひとつのデータ型で扱います。また、interval型同士の演算ができます。</td>
+<td>年と月を扱うINTERVAL YEAR TO MONTH型と、日、時、分、秒を扱うINTERVAL DAY TO SECOND型の2種類のINTERVAL型があります。また、同じ種類のINTERVAL型同士の演算はできますが、異なる種類のINTERVAL型の演算はエラーとなります。</td>
+<td>年・月のデータを保持したINTERVAL型の列と日・時刻のデータを保持したINTERVAL型の列の演算は、PostgreSQLで処理されると正しく演算されますが、Oracleで処理されるとエラーとなります。</td>
+</tr>
+<tr>
+<td nowrap>interval型の乗除算</td>
+<td>interval型の月の値を乗除算した結果、月数に満たない値は、1か月を30日として月より小さい精度の値に置き換えます。</td>
+<td>INTERVAL YEAR TO MONTH型の月の値を乗除算した結果、月数に満たない値は、切り捨てます。</td>
+<td>PostgreSQL側でinterval型にマッピングしたINTERVAL YEAR TO MONTH型の列を月数に満たない値が生じるように乗除算した場合、PostgreSQLでは日数や時刻に置き換えられますが、Oracleでは月数に満たない値は切り捨てられます。</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>
+</div>
+
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</body>
+</html>

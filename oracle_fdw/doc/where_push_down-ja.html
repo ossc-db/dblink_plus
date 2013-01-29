@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+
+<title>WHERE句のpush down</title>
+<!-- Uncoment after the tool has been hosted somewhere.
+<link rel="home" title="oracle_fdw" href="http://pgstatsinfo.projects.postgresql.org/index.html">
+-->
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head><body>
+<h1 id="oracle_fdw">oracle_fdw 1.0.0</h1>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="where_push_down-ja.html">WHERE句のpush down</a>
+</div>
+<hr>
+
+<h2 id="where-push-down">WHERE句のpush down</h2>
+<p>oracle_fdwでは、Oracleに発行してもSELECT結果に影響しないWHERE句の条件を、Oracleに発行するSELECT文のWHERE句に含めます。
+これにより、WHERE句に指定した条件を外部サーバで評価して転送データ量を削減したり、CPUリソースを分散使用することが可能です。</p>
+<p>oracle_fdwでは、以下の条件を全て満たした場合にWHERE句に指定した条件がpush downされます。
+最上位のANDで連結されたそれぞれの条件ごとにpush downできるかどうかを判断します。</p>
+<ul>
+<li>演算子が<a href="#data-type-mapping">WHERE句にpush downする演算子</a>であること</li>
+<li>演算対象のデータ型が、マッピング可能なPostgreSQL側のデータ型であること</li>
+<li>関数が<a href="where_func_push_down-ja.html#routine-mapping">ルーチンマッピング</a>が登録されている関数であること</li>
+<li>ORで連結されたそれぞれの条件が、全てpush down可能であること</li>
+</ul>
+
+<p>ただし、以下の条件が当てはまる場合はpush downされません。</p>
+<ul>
+<li>interval型の定数の値が、OracleのINTERVAL YEAR TO MONTH型とINTERVAL DAY TO SECOND型の両方の範囲の値を持つ場合</li>
+<li>interval型の定数の値の全ての単位が0の場合</li>
+</ul>
+
+<p>WHERE句に指定した条件がpush downされるかどうかは、EXPLAINコマンドで確認できます。</p>
+
+<h3 id="where_push_down_opr">WHERE句にpush downする演算子</h3>
+<p>oracle_fdwがWHERE句にpush downする演算子の一覧を以下に示します。</p>
+
+<table>
+<thead>
+<tr><th>種別</th><th>演算子名</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="3" nowrap>論理演算子</td><td>AND</td><td>論理積</td></tr>
+<tr><td>OR</td><td>論理和</td></tr>
+<tr><td>NOT</td><td>否定</td></tr>
+<tr><td rowspan="13" nowrap>比較演算子</td><td>&lt;</td><td>小なり</td></tr>
+<tr><td>&gt;</td><td>大なり</td></tr>
+<tr><td>&lt;=</td><td>等しいかそれ以下</td></tr>
+<tr><td>&gt;=</td><td>等しいかそれ以上</td></tr>
+<tr><td>=</td><td>等しい</td></tr>
+<tr><td>&lt;&gt;</td><td rowspan="2">等しくない</td></tr>
+<tr><td>!=</td></tr>
+<tr><td><i>a</i> BETWEEN <i>x</i> AND <i>y</i></td><td>範囲内に含まれている</td></tr>
+<tr><td><i>a</i> NOT BETWEEN <i>x</i> AND <i>y</i></td><td>範囲内に含まれていない</td></tr>
+<tr><td>IS NULL</td><td rowspan="2">値がNULL</td></tr>
+<tr><td>ISNULL</td></tr>
+<tr><td>IS NOT NULL</td><td rowspan="2">値がNULLでない</td></tr>
+<tr><td>NOTNULL</td></tr>
+<tr><td rowspan="4" nowrap>算術演算子</td><td>+</td><td>数値の和</td></tr>
+<tr><td>-</td><td>数値の差</td></tr>
+<tr><td>*</td><td>数値の積</td></tr>
+<tr><td>/</td><td>数値の商</td></tr>
+<tr><td>文字列演算子</td><td>||</td><td>文字列結合</td></tr>
+<tr><td rowspan="4" nowrap>パターンマッチ</td><td>LIKE</td><td td rowspan="2">パターンに文字列が一致する</td></tr>
+<tr><td>~~</td></tr>
+<tr><td>NOT LIKE</td><td rowspan="2">パターンに文字列が一致しない</td></tr>
+<tr><td>!~~</td></tr>
+<tr><td rowspan="4" nowrap>日付/時刻演算子</td><td>+</td><td>日付/時刻の和</td></tr>
+<tr><td>-</td><td>日付/時刻の差</td></tr>
+<tr><td>*</td><td>日付/時刻の積</td></tr>
+<tr><td>/</td><td>日付/時刻の商</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="where_push_down-ja.html">WHERE句のpush down</a>
+</div>
+
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</body>
+</html>

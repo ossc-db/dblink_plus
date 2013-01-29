@@ -1,0 +1,576 @@
+\c contrib_regression_utf8
+SET timezone = Japan;
+SET DateStyle = iso,YMD;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 2011-02-03
+ 4712-01-01 BC
+ 9999-12-31
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 2011-02-03 12:34:56
+ 4712-01-01 00:00:00 BC
+ 9999-12-31 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 2011-02-03 12:34:56.123456
+ 4712-01-01 00:00:00.000001 BC
+ 9999-12-31 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SET DateStyle = iso,DMY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 2011-02-03
+ 4712-01-01 BC
+ 9999-12-31
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 2011-02-03 12:34:56
+ 4712-01-01 00:00:00 BC
+ 9999-12-31 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 2011-02-03 12:34:56.123456
+ 4712-01-01 00:00:00.000001 BC
+ 9999-12-31 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SET DateStyle = iso,MDY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 2011-02-03
+ 4712-01-01 BC
+ 9999-12-31
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 2011-02-03 12:34:56
+ 4712-01-01 00:00:00 BC
+ 9999-12-31 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 2011-02-03 12:34:56.123456
+ 4712-01-01 00:00:00.000001 BC
+ 9999-12-31 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ 2011-02-03 12:34:56.123456+09
+ 4712-01-02 00:00:00.000001+09:18:59 BC
+ 9999-12-31 23:59:59.999998+09
+(3 rows)
+
+SET DateStyle = sql,YMD;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 02/03/2011
+ 01/01/4712 BC
+ 12/31/9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 02/03/2011 12:34:56
+ 01/01/4712 00:00:00 BC
+ 12/31/9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 02/03/2011 12:34:56.123456
+ 01/01/4712 00:00:00.000001 BC
+ 12/31/9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 02/03/2011 12:34:56.123456 JST
+ 01/02/4712 00:00:00.000001 LMT BC
+ 12/31/9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 02/03/2011 12:34:56.123456 JST
+ 01/02/4712 00:00:00.000001 LMT BC
+ 12/31/9999 23:59:59.999998 JST
+(3 rows)
+
+SET DateStyle = sql,DMY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03/02/2011
+ 01/01/4712 BC
+ 31/12/9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03/02/2011 12:34:56
+ 01/01/4712 00:00:00 BC
+ 31/12/9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03/02/2011 12:34:56.123456
+ 01/01/4712 00:00:00.000001 BC
+ 31/12/9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 03/02/2011 12:34:56.123456 JST
+ 02/01/4712 00:00:00.000001 LMT BC
+ 31/12/9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 03/02/2011 12:34:56.123456 JST
+ 02/01/4712 00:00:00.000001 LMT BC
+ 31/12/9999 23:59:59.999998 JST
+(3 rows)
+
+SET DateStyle = sql,MDY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 02/03/2011
+ 01/01/4712 BC
+ 12/31/9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 02/03/2011 12:34:56
+ 01/01/4712 00:00:00 BC
+ 12/31/9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 02/03/2011 12:34:56.123456
+ 01/01/4712 00:00:00.000001 BC
+ 12/31/9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 02/03/2011 12:34:56.123456 JST
+ 01/02/4712 00:00:00.000001 LMT BC
+ 12/31/9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 02/03/2011 12:34:56.123456 JST
+ 01/02/4712 00:00:00.000001 LMT BC
+ 12/31/9999 23:59:59.999998 JST
+(3 rows)
+
+SET DateStyle = postgres,YMD;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 02-03-2011
+ 01-01-4712 BC
+ 12-31-9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+            val1             
+-----------------------------
+ Thu Feb 03 12:34:56 2011
+ Sat Jan 01 00:00:00 4712 BC
+ Fri Dec 31 23:59:59 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+                val1                
+------------------------------------
+ Thu Feb 03 12:34:56.123456 2011
+ Sat Jan 01 00:00:00.000001 4712 BC
+ Fri Dec 31 23:59:59.999998 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu Feb 03 12:34:56.123456 2011 JST
+ Sun Jan 02 00:00:00.000001 4712 LMT BC
+ Fri Dec 31 23:59:59.999998 9999 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu Feb 03 12:34:56.123456 2011 JST
+ Sun Jan 02 00:00:00.000001 4712 LMT BC
+ Fri Dec 31 23:59:59.999998 9999 JST
+(3 rows)
+
+SET DateStyle = postgres,DMY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03-02-2011
+ 01-01-4712 BC
+ 31-12-9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+            val1             
+-----------------------------
+ Thu 03 Feb 12:34:56 2011
+ Sat 01 Jan 00:00:00 4712 BC
+ Fri 31 Dec 23:59:59 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+                val1                
+------------------------------------
+ Thu 03 Feb 12:34:56.123456 2011
+ Sat 01 Jan 00:00:00.000001 4712 BC
+ Fri 31 Dec 23:59:59.999998 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu 03 Feb 12:34:56.123456 2011 JST
+ Sun 02 Jan 00:00:00.000001 4712 LMT BC
+ Fri 31 Dec 23:59:59.999998 9999 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu 03 Feb 12:34:56.123456 2011 JST
+ Sun 02 Jan 00:00:00.000001 4712 LMT BC
+ Fri 31 Dec 23:59:59.999998 9999 JST
+(3 rows)
+
+SET DateStyle = postgres,MDY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 02-03-2011
+ 01-01-4712 BC
+ 12-31-9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+            val1             
+-----------------------------
+ Thu Feb 03 12:34:56 2011
+ Sat Jan 01 00:00:00 4712 BC
+ Fri Dec 31 23:59:59 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+                val1                
+------------------------------------
+ Thu Feb 03 12:34:56.123456 2011
+ Sat Jan 01 00:00:00.000001 4712 BC
+ Fri Dec 31 23:59:59.999998 9999
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu Feb 03 12:34:56.123456 2011 JST
+ Sun Jan 02 00:00:00.000001 4712 LMT BC
+ Fri Dec 31 23:59:59.999998 9999 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+                  val1                  
+----------------------------------------
+ Thu Feb 03 12:34:56.123456 2011 JST
+ Sun Jan 02 00:00:00.000001 4712 LMT BC
+ Fri Dec 31 23:59:59.999998 9999 JST
+(3 rows)
+
+SET DateStyle = german,YMD;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03.02.2011
+ 01.01.4712 BC
+ 31.12.9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03.02.2011 12:34:56
+ 01.01.4712 00:00:00 BC
+ 31.12.9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03.02.2011 12:34:56.123456
+ 01.01.4712 00:00:00.000001 BC
+ 31.12.9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SET DateStyle = german,DMY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03.02.2011
+ 01.01.4712 BC
+ 31.12.9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03.02.2011 12:34:56
+ 01.01.4712 00:00:00 BC
+ 31.12.9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03.02.2011 12:34:56.123456
+ 01.01.4712 00:00:00.000001 BC
+ 31.12.9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SET DateStyle = german,MDY;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03.02.2011
+ 01.01.4712 BC
+ 31.12.9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03.02.2011 12:34:56
+ 01.01.4712 00:00:00 BC
+ 31.12.9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03.02.2011 12:34:56.123456
+ 01.01.4712 00:00:00.000001 BC
+ 31.12.9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 12:34:56.123456 JST
+ 02.01.4712 00:00:00.000001 LMT BC
+ 31.12.9999 23:59:59.999998 JST
+(3 rows)
+
+SET timezone = UTC;
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03.02.2011
+ 01.01.4712 BC
+ 31.12.9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03.02.2011 12:34:56
+ 01.01.4712 00:00:00 BC
+ 31.12.9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03.02.2011 12:34:56.123456
+ 01.01.4712 00:00:00.000001 BC
+ 31.12.9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 03:34:56.123456 UTC
+ 01.01.4712 14:41:01.000001 UTC BC
+ 31.12.9999 14:59:59.999998 UTC
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 03.02.2011 03:34:56.123456 UTC
+ 01.01.4712 14:42:00.000001 UTC BC
+ 31.12.9999 14:59:59.999998 UTC
+(3 rows)
+
+SET timezone = 'America/New_York';
+SELECT val1 FROM ft_date_date ORDER BY id;
+     val1      
+---------------
+ 03.02.2011
+ 01.01.4712 BC
+ 31.12.9999
+(3 rows)
+
+SELECT val1 FROM ft_date_timestamp ORDER BY id;
+          val1          
+------------------------
+ 03.02.2011 12:34:56
+ 01.01.4712 00:00:00 BC
+ 31.12.9999 23:59:59
+(3 rows)
+
+SELECT val1 FROM ft_timestamp ORDER BY id;
+             val1              
+-------------------------------
+ 03.02.2011 12:34:56.123456
+ 01.01.4712 00:00:00.000001 BC
+ 31.12.9999 23:59:59.999998
+(3 rows)
+
+SELECT val1 FROM ft_timestamptz ORDER BY id;
+               val1                
+-----------------------------------
+ 02.02.2011 22:34:56.123456 EST
+ 01.01.4712 09:44:59.000001 LMT BC
+ 31.12.9999 09:59:59.999998 EST
+(3 rows)
+
+SELECT val1 FROM ft_timestampltz ORDER BY id;
+               val1                
+-----------------------------------
+ 02.02.2011 22:34:56.123456 EST
+ 01.01.4712 09:46:00.000001 LMT BC
+ 31.12.9999 09:59:59.999998 EST
+(3 rows)
+

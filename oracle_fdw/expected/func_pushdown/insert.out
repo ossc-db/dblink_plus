@@ -1,0 +1,34 @@
+\c contrib_regression_utf8
+DELETE FROM oracle_fdw.pg_routine_mapping
+ WHERE rmproc = 'abs(integer)'::regprocedure;
+EXPLAIN SELECT * FROM ft1 WHERE abs(c1) = 1;
+                             QUERY PLAN                             
+--------------------------------------------------------------------
+ Foreign Scan on ft1  (cost=100.00..100.00 rows=1000 width=100)
+   Filter: (abs(c1) = 1)
+   Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1"
+(3 rows)
+
+SELECT * FROM ft1 WHERE abs(c1) = 1;
+ c1 | c2 |  c3   |              c4               
+----+----+-------+-------------------------------
+  1 | A  | a     | 2011-01-01 AD 12:34:56.000000
+(1 row)
+
+INSERT INTO oracle_fdw.pg_routine_mapping
+SELECT 'abs(integer)', oid, '{format=ABS(%s)}'
+  FROM pg_foreign_server
+ WHERE srvname = 'ora_server';
+EXPLAIN SELECT * FROM ft1 WHERE abs(c1) = 1;
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Foreign Scan on ft1  (cost=100.00..100.00 rows=1000 width=100)
+   Remote SQL: SELECT "c1", "c2", "c3", "c4" FROM "oracle_fdw"."t1" WHERE (ABS("c1") = 1)
+(2 rows)
+
+SELECT * FROM ft1 WHERE abs(c1) = 1;
+ c1 | c2 |  c3   |              c4               
+----+----+-------+-------------------------------
+  1 | A  | a     | 2011-01-01 AD 12:34:56.000000
+(1 row)
+

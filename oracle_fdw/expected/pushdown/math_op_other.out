@@ -1,0 +1,200 @@
+\c contrib_regression_utf8
+SET DateStyle = 'ISO,YMD';
+SET IntervalStyle = 'sql_standard';
+SET TIMEZONE = 'Asia/Tokyo';
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 / binary_float_real_1 = 1;
+                                                                                                                                                                                                                              QUERY PLAN                                                                                                                                                                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_smallint_1)::double precision / binary_float_real_1) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 / binary_double_precision_1 = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_smallint_1)::double precision / binary_double_precision_1) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 / number_numeric3_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_smallint_1)::numeric / number_numeric3_1) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 / binary_float_real_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_integer_1)::double precision / binary_float_real_1) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 / binary_double_precision_1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_integer_1)::double precision / binary_double_precision_1) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 / number_numeric3_1 = 1;
+                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_integer_1)::numeric / number_numeric3_1) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 / binary_float_real_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_bigint_1)::double precision / binary_float_real_1) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 / binary_double_precision_1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_bigint_1)::double precision / binary_double_precision_1) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 / number_numeric3_1 = 1;
+                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_bigint_1)::numeric / number_numeric3_1) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 / number_smallint_1 = 1;
+                                                                                                                                                                                                                              QUERY PLAN                                                                                                                                                                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_float_real_1 / (number_smallint_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 / number_integer_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_float_real_1 / (number_integer_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 / number_bigint_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_float_real_1 / (number_bigint_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 / number_numeric3_1 = 1;
+                                                                                                                                                                                                                              QUERY PLAN                                                                                                                                                                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_float_real_1 / (number_numeric3_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 / number_smallint_1 = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_double_precision_1 / (number_smallint_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 / number_integer_1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_double_precision_1 / (number_integer_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 / number_bigint_1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_double_precision_1 / (number_bigint_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 / number_numeric3_1 = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((binary_double_precision_1 / (number_numeric3_1)::double precision) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 / number_smallint_1 = 1;
+                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((number_numeric3_1 / (number_smallint_1)::numeric) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, "number_smallint_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 / number_integer_1 = 1;
+                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((number_numeric3_1 / (number_integer_1)::numeric) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, "number_integer_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 / number_bigint_1 = 1;
+                                                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: ((number_numeric3_1 / (number_bigint_1)::numeric) = 1::numeric)
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_bigint_1", NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 / binary_float_real_1 = 1;
+                                                                                                                                                                                                                              QUERY PLAN                                                                                                                                                                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_numeric3_1)::double precision / binary_float_real_1) = 1::double precision)
+   Remote SQL: SELECT "id", "binary_float_real_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 / binary_double_precision_1 = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Filter: (((number_numeric3_1)::double precision / binary_double_precision_1) = 1::double precision)
+   Remote SQL: SELECT "id", NULL, NULL, "binary_double_precision_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "number_numeric3_1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type"
+(3 rows)
+
+SELECT id, number_numeric1_1 FROM all_type WHERE number_numeric1_1 + 1 = 1;
+ id | number_numeric1_1 
+----+-------------------
+  6 |                 0
+(1 row)
+
+SELECT id, number_numeric2_1 FROM all_type WHERE number_numeric2_1 + 1 = 1;
+ id |                                                         number_numeric2_1                                                          
+----+------------------------------------------------------------------------------------------------------------------------------------
+  5 | -0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000
+  6 |  0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  7 |  0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000
+(3 rows)
+
+SELECT id, number_numeric3_1 FROM all_type WHERE number_numeric3_1 + 1 = 1;
+ id | number_numeric3_1 
+----+-------------------
+  6 |                 0
+(1 row)
+

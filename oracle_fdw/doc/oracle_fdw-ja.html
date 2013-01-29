@@ -1,0 +1,381 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>oracle_fdw</title>
+<!-- Uncoment after the tool has been hosted somewhere.
+<link rel="home" title="oracle_fdw" href="index.html">
+-->
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+<h1 id="oracle_fdw">oracle_fdw 1.0.0</h1>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a>
+</div>
+<hr>
+
+<div class="index">
+<ol>
+<li><a href="#name">oracle_fdwとは？</a></li>
+<li><a href="#description">機能概要</a></li>
+<li><a href="#install">インストール</a>
+<ol>
+  <li><a href="#requirement">動作環境</a></li>
+  <li><a href="#build">ビルド</a></li>
+  <li><a href="#environment_variables">環境変数の設定</a></li>
+  <li><a href="#create-extension">エクステンションの作成</a></li>
+</ol>
+</li>
+<li><a href="#usage">使い方</a></li>
+<ol>
+  <li><a href="#create-server">外部サーバの作成</a></li>
+  <li><a href="#create-user-mapping">ユーザマッピングの作成</a></li>
+  <li><a href="#create-foreign-table">外部テーブルの作成</a></li>
+  <li><a href="#execute-query">検索の実行</a></li>
+  <li><a href="#alter-options">FDWオプションの操作</a></li>
+</ol>
+<li><a href="#valid-options">FDWオプション</a></li>
+<li><a href="#where-push-down">WHERE句のpush down</a></li>
+<li><a href="#uninstall">アンインストール</a></li>
+<li><a href="#restrictions">使用上の注意と制約</a></li>
+<li><a href="#details">詳細情報</a></li>
+<ol>
+  <li><a href="#functions">バリデータ関数とハンドラ関数</a></li>
+  <li><a href="#max_value_len">max_value_len</a></li>
+  <li><a href="#connections">接続管理</a></li>
+  <li><a href="#connection-option">内部で設定する接続オプション</a></li>
+</ol>
+<li><a href="#seealso">関連項目</a></li>
+</ol>
+</div>
+
+<h2 id="name">oracle_fdwとは？</h2>
+<p>oracle_fdwは、外部のOracleサーバに対して検索を実行するための外部データラッパです。</p>
+
+<h2 id="description">機能概要</h2>
+<p>oracle_fdwを用いると、外部のOracleサーバにあるテーブルに対応する外部テーブルを作成できます。また、その外部テーブルを用いた通常のSELECT文を実行することで、通常のテーブルと同様に外部データを扱うことができます。</p>
+<p>oracle_fdwでは、Oracleに発行してもSELECT結果に影響しないWHERE句の条件を、Oracleに発行するSELECT文のWHERE句に含めます。これをWHERE句push downと呼びます。</p>
+<p>PostgreSQL 9.1では外部テーブルは読み取り専用のため、oracle_fdwで定義した外部テーブルに対する更新(INSERT/UPDATE/DELETE)はエラーとなり実行できません。</p>
+
+<h2 id="install">インストール</h2>
+<p>oracle_fdwのインストール方法について説明します。
+
+<h3 id="requirement">動作環境</h3>
+<dl>
+<dt>PostgreSQL</dt><dd>バージョン 9.1</dd>
+<dt>動作検証済みOracle Database</dt><dd>10g Release 2</dd>
+<dt>動作検証済みOracle Instant Client</dt><dd>10.2.0.4</dd>
+<dt>動作検証済みOCIライブラリ</dt><dd>バージョン 10.2.0.4</dd>
+<dt>動作検証済みOS</dt><dd>RHEL 5.6</dd>
+</dl>
+
+<h3 id="build">ビルド</h3>
+<p>oracle_fdwをソースコードからビルドするには、PostgreSQL 9.1 のソースツリーか、インストール済みのpgxsが必要です。また、OracleクライアントやOracle Instalt ClientによってOCIライブラリをインストールしたうえで、ビルドするOSユーザに以下の環境変数を設定する必要があります。Oracle製品のインストール手順についてはOracleが提供するドキュメントを参照してください。</p>
+<ul>
+<li>ORACLE_HOME : Oracleのインストール先のディレクトリを設定してください。</li>
+</ul>
+
+<h4 id="build-with-source">ソースツリーを用いたビルド</h4>
+<p>PostgreSQLのソースツリーを使用する場合は、PostgreSQL本体のconfigureおよびビルドを済ませてから、contrib配下にoracle_fdwのソースを展開し、makeを実施します。</p>
+<pre>
+$ cd postgresql-9.1.x
+$ ./configure
+$ make
+$ cd contrib
+$ tar zxvf oracle_fdw-1.0.0.tar.gz
+$ cd oracle_fdw-1.0.0
+$ make
+$ make install 
+</pre>
+
+<h4 id="build-with-pgxs">pgxsを用いたビルド</h4>
+<p>pgxsを用いる場合は、USE_PGXS変数を設定してからビルドおよびインストールを実施します。</p>
+<pre>
+$ tar xzvf oracle_fdw-1.0.0.tar.gz
+$ cd oracle_fdw
+$ make USE_PGXS=1
+$ su
+# make USE_PGXS=1 install
+</pre>
+
+<h3 id="environment_variables">環境変数の設定</h3>
+<p>oracle_fdwを実行するには、OracleクライアントやOracle Instalt ClientによってOCIライブラリをインストールしたうえで、postgresを起動するOSユーザに以下の環境変数を設定する必要があります。Oracle製品のインストール手順についてはOracleが提供するドキュメントを参照してください。</p>
+<ul>
+<li>LD_LIBRARY_PATH : OCIライブラリのインストール先のディレクトリを設定してください。</li>
+</ul>
+
+<h3 id="create-extension">エクステンションの作成</h3>
+<p>oracle_fdwはPostgreSQL 9.1で導入されたエクステンション形式に対応しているため、psqlなどでCREATE EXTENSIONコマンドを実行することで、関数などの構成要素とともに自動的に外部データラッパが作成されます。従来のcontribモジュールのように手動でSQLスクリプトを実行する必要はありません。なお、この作業にはスーパーユーザ権限が必要です。
+<pre>
+$ psql
+postgres=# CREATE EXTENSION oracle_fdw;
+CREATE EXTENSION
+postgres=# \dew
+                   List of foreign-data wrappers
+    Name    |  Owner   |      Handler       |      Validator
+------------+----------+--------------------+----------------------
+ oracle_fdw | postgres | oracle_fdw_handler | oracle_fdw_validator
+(1 row)
+
+postgres=#
+</pre>
+<p>
+
+<h2 id="usage">使い方</h2>
+<p>oracle_fdwを用いて外部のOracleサーバにあるテーブルを検索する手順について説明します。なお、接続情報はサンプルですので、実際の環境に合わせて適宜読み替えてください。</p>
+
+<h3 id="create-server">外部サーバの作成</h3>
+
+<p>スーパーユーザ権限のあるユーザでCREATE SERVERコマンドを実行して、検索対象のデータベースに対応する外部サーバを作成します。外部サーバの<a href="#valid-options">FDWオプション</a>として、ネット・サービス名を指定します。</p>
+<pre>
+postgres=# CREATE SERVER remote_db FOREIGN DATA WRAPPER oracle_fdw
+postgres-# OPTIONS (dbname 'orcl');
+CREATE SERVER
+postgres=#
+</pre>
+<p>外部サーバ作成後に、スーパーユーザ権限のあるユーザで以下のINSERTコマンドを実行して、ローカルの関数とリモートの関数をひもづけるルーチンマッピングを作成します。詳細は<a href="where_func_push_down-ja.html#routine-mapping">ルーチンマッピング</a>を参照してください。</p>
+<pre>
+postgres=# INSERT INTO oracle_fdw.pg_routine_mapping
+postgres-# SELECT t.rmproc, s.oid, t.rmoptions
+postgres-#   FROM pg_foreign_server s, (
+postgres(#        SELECT *
+postgres(#          FROM oracle_fdw.pg_routine_mapping r, pg_foreign_server s
+postgres(#         WHERE srvname = 'oracle_fdw_template_server'
+postgres(#           AND r.rmserver = s.oid) t
+postgres-#  WHERE s.srvname = 'remote_db';
+</pre>
+
+<h3 id="create-user-mapping">ユーザマッピングの作成</h3>
+
+<p>外部サーバの所有者でCREATE USER MAPPINGコマンドを実行して、ローカルユーザとリモートユーザをひもづけるユーザマッピングを作成します。ユーザマッピングの<a href="#valid-options">FDWオプション</a>として、リモートユーザのユーザ名やパスワードを指定します。</p>
+<pre>
+postgres=# CREATE USER MAPPING FOR postgres SERVER remote_db
+postgres-# OPTIONS (user 'scott', password 'tiger');
+CREATE USER MAPPING
+postgres=#
+</pre>
+<p>任意のローカルユーザが外部テーブルを検索しても良いケースでは、ローカルユーザ名の代わりにpublicを指定することで、ユーザマッピングを持たないローカルユーザ用のマッピングを作成することもできます。</p>
+<pre>
+postgres=# CREATE USER MAPPING FOR public SERVER remote_db
+postgres-# OPTIONS (user 'app_user', password 'secret');
+CREATE USER MAPPING
+postgres=#
+</pre>
+
+<h3 id="create-foreign-table">外部テーブルの作成</h3>
+
+<p>外部サーバの所有者でCREATE FOREIGN TABLEコマンドを実行して、検索対象のリモートテーブルに対応する外部テーブルを作成します。基本的な構文はCREATE TABLE文と同じですが、列リストの後に外部サーバを指定する必要があります。また、リモートテーブルのスキーマ名やテーブル名が、外部テーブルを作成するスキーマ名や外部テーブル名と異なる場合は、外部テーブルの<a href="#valid-options">FDWオプション</a>で指定できます。スキーマ名やテーブル名が同じ場合は不要です。以下に例を示します。</p>
+<p>Oracleに以下のテーブルが定義されているものとします。</p>
+<pre>
+SQL> DESC pgbench_accounts
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ AID                                       NOT NULL NUMBER(10)
+ BID                                                NUMBER(10)
+ ABALANCE                                           NUMBER(10)
+ FILLER                                             CHAR(84)
+
+SQL>
+</pre>
+<p>CREATE FOREIGN TABLEコマンドを実行して、上記のテーブルに関連付けられた外部テーブルを作成します。列名はリモートテーブルと同じ名前にする必要があります。また、引用符付きでない識別子は小文字の識別子として扱われますので注意してください。外部テーブルの<a href="#valid-options">FDWオプション</a>として、スキーマ名とOracleのテーブル名を指定します。</p>
+<pre>
+postgres=# CREATE FOREIGN TABLE remote_accounts (
+postgres(# "AID" integer,
+postgres(# "BID" integer,
+postgres(# "ABALANCE" integer,
+postgres(# "FILLER" char(84))
+postgres(# SERVER remote_db
+postgres(# OPTIONS (nspname 'scott', relname 'PGBENCH_ACCOUNTS');
+CREATE FOREIGN TABLE
+postgres=#
+</pre>
+
+<h3 id="execute-query">検索の実行</h3>
+
+<p>外部テーブルが作成できたら、外部テーブルを使った通常のSELECT文を実行するだけで外部テーブルからデータを取得できます。ユーザマッピングで指定したリモートユーザには、OracleのテーブルのSELECT権限が必要です。実行するSELECT文に制限はありませんが、外部テーブルに対する更新はできません。外部テーブルを作成したユーザ以外にも検索を許可したい場合は、通常のテーブルと同様にGRANT文でSELECT権限を付与します。</p>
+
+<pre>
+postgres=# SELECT "AID", "BID", "ABALANCE" FROM remote_accounts WHERE "AID" = 1;
+ AID | BID | ABALANCE
+-----+-----+----------
+   1 |   1 |        0
+(1 row)
+
+postgres=#
+</pre>
+
+<p>リモートに発行するクエリを確認するには、EXPLAINコマンドを使用します。リモートに発行するクエリは、「Remote SQL:」に続けて出力されます。以下の例では「"AID" = 1」の条件がpush downされていることが確認できます。</p>
+<pre>
+postgres=# EXPLAIN SELECT "AID", "BID", "ABALANCE" FROM remote_accounts WHERE "AID" = 1;
+                                        QUERY PLAN
+
+-------------------------------------------------------------------------------------------
+ Foreign Scan on remote_accounts  (cost=10.00..10.00 rows=1000 width=352)
+   Remote SQL: SELECT "AID", "BID", "ABALANCE" FROM "scott"."PGBENCH_ACCOUNTS" WHERE ("AID" = 1)
+(2 行)
+
+postgres=#
+</pre>
+
+<h3 id="alter-options"><a href="#valid-options">FDWオプション</a>の操作</h3>
+
+<p>リモートユーザのパスワードなどの接続情報が変更された場合は、該当するFDWオプションを定義したオブジェクトに対してALTER文を実行して、FDWオプションの値を設定します。以下の例ではリモートユーザのパスワードを変更しています。CREATE文と異なり、既存FDWオプションの変更にはSET指定が必要ですので注意してください。FDWオプションは、SET指定による変更の他に、ADD指定による追加やDROP指定による削除もできます。</p>
+<pre>
+postgres=# ALTER USER MAPPING FOR postgres SERVER remote_db
+postgres-# OPTIONS (SET password 'more secret');
+ALTER USER MAPPING
+postgres=#
+</pre>
+
+<h2 id="valid-options">FDWオプション</h2>
+<p>oracle_fdwでは、Oracleに対して検索を実行するのに必要な情報をいくつかのオブジェクトに分割して設定します。無効なFDWオプションを指定した場合はFDWオプション設定時にエラーが発生しますが、必須項目が省略されていたり設定した値が誤っていた場合は、検索実行時にエラーが発生するので注意してください。</p>
+<p>有効なFDWオプションは以下のとおりです。</p>
+<table>
+<thead>
+<tr>
+<tr><th>指定対象<br/>オブジェクト</th><th>FDWオプション名</th><th>説明</th><th>デフォルト値</th></tr>
+</tr>
+</thead>
+<tbody>
+<tr><td rowspan="3" nowrap>外部サーバ</td><td>dbname</td><td>Oracleへの接続に使用する接続識別子です。tnsnames.oraファイルで設定したネット・サービス名や簡易接続ネーミング・メソッドなどが指定できます。</td><td>環境変数のORACLE_SIDに指定した接続識別子</td></tr>
+<tr><td>max_value_len</td>
+<td>検索処理を高速化するための、列データを保持するバッファのサイズです。整数で指定してください。指定できる最大サイズは(1G-2)バイトです。
+OracleのテーブルにLONG型、およびLONG RAW型を含む場合は必ず指定してください。指定しない場合は、検索実行時にエラーとなります。
+Oracleのテーブルに格納されているデータの中で、最大の列のサイズを指定してください。このとき、ラージオブジェクトの列は除外してください。
+0以下の整数を指定した場合は、バッファを自動拡張しながら検索を行います。
+max_value_lenの詳細については、<a href="#max_value_len">検索結果のバッファリング</a>を参照してください。</p>
+</td>
+<td nowrap>なし（自動拡張）</td></tr>
+<tr><td>fetchsize</td><td>一度にフェッチする件数を整数で設定します。0以下の整数を指定するとデフォルトの100が使用されます。</td><td nowrap>100</td></tr>
+<tr><td rowspan="2" nowrap>ユーザマッピング</td><td>user</td><td>リモートユーザのユーザ名です。</td><td nowrap>なし（必須）</td></tr>
+<tr><td>password</td><td>リモートユーザのパスワードです。</td><td nowrap>なし（必須）</td></tr>
+<tr><td rowspan="4" nowrap>外部テーブル</td>
+<td>nspname</td><td>Oracle上のテーブルのスキーマ名です。大文字と小文字を区別します。Oracleとローカルでスキーマが異なる場合に使用します。</td><td nowrap>外部テーブルのスキーマ名</td></tr>
+<tr><td>relname</td><td>Oracle上のテーブルのテーブル名です。大文字と小文字を区別します。リモートとローカルでテーブル名が異なる場合に使用します。</td><td nowrap>外部テーブルのテーブル名</td></tr>
+<tr><td>max_value_len</td><td>外部サーバの同名FDWオプションと同じ意味で、両方に設定した場合は外部テーブルの設定値が優先されます。指定しない場合は、外部サーバの設定値が使用されます。</td><td nowrap>なし（外部サーバの設定）</td></tr>
+<tr><td>fetchsize</td><td>外部サーバの同名FDWオプションと同じ意味で、両方に設定した場合は外部テーブルの設定値が優先されます。指定しない場合は、外部サーバの設定値が使用されます。</td><td nowrap>なし（外部サーバの設定）</td></tr>
+</tbody>
+</table></p>
+
+<h2 id="where-push-down">WHERE句のpush down</h2>
+<p>oracle_fdwでは、外部テーブルに指定されたWHERE句の条件のうち、Oracleに発行してもSELECT結果が変わらない条件をOracleに発行するSELECT文のWHERE句に含めます。
+WHERE句に指定した条件を外部サーバで評価することで得られるメリットは、CPUリソースの分散使用、転送データ量の削減、SELECT実行時間の高速化などがあげられます。
+これをWHERE句push downと呼びます。
+</p>
+<p>WHERE句push downの対象は、SELECT結果が変わらない条件のうち、よく使われる演算や関数で構成されたものに限られます。
+WHERE句push downの対象となる具体的な演算は<a href="where_push_down-ja.html">WHERE句のpush down</a>を、関数は<a href="where_func_push_down-ja.html">WHERE句の関数のpush down</a>を参照してください。
+また、関数の場合は、Oracle側の関数への対応付けを定義するためのルーチンマッピングという仕組みを使うことで、WHERE句push downの対象を増やすことができます。詳細は<a href="where_func_push_down-ja.html#routine-mapping">ルーチンマッピング</a>を参照してください。
+</p>
+<p>ただし、ある限られたWHERE句の条件の内容によっては、PostgreSQLとOracleで異なる結果を返すため、注意してください。
+例えば、PostgreSQLでは空文字列を有効な値として扱うのに対して、OracleではNULLとして扱われてしまうため、col = '' の演算結果はOracleではUNKNOWNとなります。
+この相異による問題はCTEを使用することで回避できます。
+PostgreSQLとOracleの仕様の相異については、<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>および<a href="where_func_push_down-ja.html#function-difference">PostgreSQLとOracleの関数の仕様の相異</a>を参照してください。
+</p>
+
+<h2 id="uninstall">アンインストール</h2>
+<p>oracle_fdwをアンインストールするには、DROP EXTENSION文を実行します。oracle_fdwに関連するオブジェクトが存在する場合は、先にそれらを削除しておくか、CASCADEオプションが必要です。</p>
+<p>以下の例では一つの外部サーバとユーザマッピング、四つの外部テーブルをまとめて削除しています。</p>
+<pre>
+postgres=# drop EXTENSION oracle_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server remote_db
+drop cascades to user mapping for public
+drop cascades to foreign table remote_accounts
+drop cascades to foreign table remote_branches
+drop cascades to foreign table remote_tellers
+drop cascades to foreign table remote_history
+DROP EXTENSION
+postgres=#
+</pre>
+
+<h2 id="restrictions">使用上の注意と制約</h2>
+<p>oracle_fdwを使用する際には、以下の使用上の注意と制約があります。</p>
+
+<dl>
+<dt>データ型マッピング</dt>
+<dd>oracle_fdw用の外部テーブルを作成する際は、Oracle側のデータ型に応じて、PostgreSQL側で定義可能なデータ型に制限があります。
+oracle_fdwがサポートするデータ型マッピングの詳細については、<a href="data_mapping-ja.html">データ型マッピング</a>を参照してください。</dd>
+
+<dt>PostgreSQLとOracleの仕様の相異</dt>
+<dd>oracle_fdwでは、Oracleに発行してもSELECT結果に影響しないWHERE句の条件を、Oracleに発行するSELECT文のWHERE句に含めます。
+しかし、PostgreSQLとOracleの仕様の相異から、外部テーブルに対するSELECTの結果が意図しない結果になる場合があります。
+PostgreSQLとOracleの仕様の相異については、<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>および<a href="where_func_push_down-ja.html#function-difference">PostgreSQLとOracleの関数の仕様の相異</a>を参照してください。</dd>
+
+<dt>外部テーブルは読み取り専用</dt>
+<dd>PostgreSQLの仕様で外部テーブルは読み取り専用です。このため、更新系のDMLはエラーとなります。また、管理用のSQLコマンド(VACUUMやANALYZE)は外部テーブルを処理対象に含めません。</dd>
+
+<dt>接続とトランザクションの管理</dt>
+<dd>oracle_fdwでは、一つのクエリに複数の外部テーブルが含まれていた場合、それらが同じ外部サーバで定義されていればリモートデータベースへの接続を共有します。ただし、このときのトランザクション分離レベルはOracleの設定値に従うため、読み取り結果に一貫性がない場合があります。</dd>
+
+<dt>メモリ消費の問題</dt>
+<dd>1件のサイズが大きいテーブルを検索した場合や、1つのSELECT文に複数の外部テーブルを指定した場合などは、ローカルセッションのメモリ使用量が非常に多くなります。
+特に、<a href="#valid-options">FDWオプション</a>でmax_value_lenを指定した場合は、極端にサイズが大きい列が1つでもあると、列数に比例してメモリ使用量が増加するため、メモリ確保エラーでSQLが異常終了する場合があります。
+max_value_lenを指定した場合の、1テーブルあたりのメモリ使用量の算出方法については、<a href="#max_value_len">検索結果のバッファリング</a>を参照してください。
+メモリ確保エラーが発生する場合は、SELECT句に指定する列やFROM句に指定する外部テーブルを、複数のSEELCT文に分割して発行してください。
+また、SELECT文をキャンセルすると、メモリの解放が完全に行われないため、メモリリークの原因になるので、注意してください。</dd>
+</dl>
+
+<h2 id="details">詳細情報</h2>
+<p>より高度な利用方法や、内部構成について説明します。</p>
+
+<h3 id="functions">バリデータ関数とハンドラ関数</h3>
+<p>oracle_fdwでは、バリデータ関数として oracle_fdw_validatorを、ハンドラ関数としてoracle_fdw_handler関数をそれぞれ定義します。これらはCREATE EXTENSION文で自動的に作成されます。</p>
+
+<h3 id="max_value_len">検索結果のバッファリング</h3>
+<p>oracle_fdwでは、検索結果をバッファリングするためのメモリ領域を、実際にテーブルへ格納されているデータのサイズに合わせて自動拡張します。
+必要最低限のメモリ使用量で検索が可能ですが、自動拡張のオーバーヘッドのため、検索処理は低速になります。
+検索時間を短縮したい場合は、<a href="#valid-options">FDWオプション</a>のmax_value_lenに、検索結果を保持するバッファのサイズを指定してください。
+max_value_lenに設定する値は、Oracleのテーブルに格納されているデータの中で、最大の列のサイズです。このとき、ラージオブジェクトの列は除外してください。
+max_value_lenに指定したサイズを超えるサイズの値を検索した場合は、検索実行時にエラーとなります。
+実際に使用されるバッファのサイズは、((max_value_len * 列数) + ラージオブジェクトの最大サイズ)です。</p>
+
+<h3 id="connections">接続管理</h3>
+<p>oracle_fdwでは、同一のローカルセッション内では、一つの接続で全ての外部テーブルスキャンを実行します。
+Oracleへの接続は、セッション終了時に切断されます。また、接続識別子、接続ユーザ、または接続に使用するパスワードを、ALTER文を使用して変更した場合は、一度切断したうえで変更後の接続情報を使用して再接続を行う場合があります。</p>
+
+<h3 id="connection-option">内部で設定する接続オプション</h3>
+<p>oracle_fdwでは、PostgreSQLとOracleの相異を吸収するために、リモートデータベースに接続する際に、内部で接続オプションを設定します。
+設定する接続オプションは以下のとおりです。
+<dl>
+<dt>NLS_CHARACTERSET</dt><dd>ローカルのデータベースエンコーディングを設定します。ローカルのデータベースエンコーディングがOracleでサポートされていない場合は、環境変数のNLS_LANGの設定に従います。NLS_LANGの設定がない場合はOracleのデフォルトの設定を使用します。</dd>
+<dt>NLS_DATE_FORMAT</dt><dd>'YYYY-MM-DD BC HH24:MI:SS'を設定します。</dd>
+<dt>NLS_TIMESTAMP_FORMAT</dt><dd>'YYYY-MM-DD BC HH24:MI:SS.FF6'を設定します。</dd>
+<dt>NLS_TIMESTAMP_TZ_FORMAT</dt><dd>'YYYY-MM-DD BC HH24:MI:SS.FF6 TZR'を設定します。</dd>
+<dt>NLS_TIME_FORMAT</dt><dd>'HH24:MI:SS.FF6'を設定します。</dd>
+<dt>NLS_TIME_TZ_FORMAT</dt><dd>'HH24:MI:SS.FF6 TZR'を設定します。</dd>
+<dt>NLS_DATE_LANGUAGE</dt><dd>'AMERICAN'を設定します。</dd>
+<dt>NLS_NUMERIC_CHARACTERS</dt><dd>'.,'を設定します。</dd>
+<dt>TIME_ZONE</dt><dd>ローカルのタイムゾーンを設定します。</dd>
+</dl>
+
+<h2 id="seealso">関連項目</h2>
+<h3 id="postgresql_document">PostgreSQLドキュメント</h3>
+<a href="http://www.postgresql.org/docs/9.1/static/ddl-foreign-data.html">外部データ</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createforeigndatawrapper.html">CREATE FOREIGN DATA WRAPPER</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createserver.html">CREATE SERVER</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createusermapping.html">CREATE USER MAPPING</a>,
+<a href="http://www.postgresql.org/docs/9.1/static/sql-createforeigntable.html">CREATE FOREIGN TABLE</a>
+<hr>
+
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a>
+</div>
+
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</body>
+</html>

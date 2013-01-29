@@ -1,0 +1,569 @@
+\c contrib_regression_utf8
+SET DateStyle = 'ISO,YMD';
+SET IntervalStyle = 'sql_standard';
+SET TIMEZONE = 'Asia/Tokyo';
+-- '+' operator
+-- 176 : int2pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 + 1::smallint = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_smallint_1" + 1) = 1)
+(2 rows)
+
+-- 177 : int4pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 + 1::integer = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_integer_1" + 1) = 1)
+(2 rows)
+
+-- 178 : int24pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 + 1::integer = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_smallint_1" + 1) = 1)
+(2 rows)
+
+-- 179 : int42pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 + 1::smallint = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_integer_1" + 1) = 1)
+(2 rows)
+
+-- 204 : float4pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 + 1.1::real = 1.1;
+                                                                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_float_real_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 218 : float8pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1::double precision = 1.1;
+                                                                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_double_precision_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 281 : float48pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 + 1.1::double precision = 1.1;
+                                                                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_float_real_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 285 : float84pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1::real = 1.1;
+                                                                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_double_precision_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 463 : int8pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 + 1::bigint = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_bigint_1" + 1) = 1)
+(2 rows)
+
+-- 837 : int82pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 + 1::smallint = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_bigint_1" + 1) = 1)
+(2 rows)
+
+-- 841 : int28pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 + 1::bigint = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_smallint_1" + 1) = 1)
+(2 rows)
+
+-- 1274 : int84pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 + 1::integer = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_bigint_1" + 1) = 1)
+(2 rows)
+
+-- 1278 : int48pl
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 + 1::bigint = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_integer_1" + 1) = 1)
+(2 rows)
+
+-- 1724 : numeric_add
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 + 1.1::numeric = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric3_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 1910 : int8up
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + number_bigint_1 = 1;
+                                                                                                                                                                                                                               QUERY PLAN                                                                                                                                                                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "number_bigint_1") = 1)
+(2 rows)
+
+-- 1911 : int2up
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + number_smallint_1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "number_smallint_1") = 1)
+(2 rows)
+
+-- 1912 : int4up
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + number_integer_1 = 1;
+                                                                                                                                                                                                                               QUERY PLAN                                                                                                                                                                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "number_integer_1") = 1)
+(2 rows)
+
+-- 1913 : float4up
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + binary_float_real_1 = 1.0;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "binary_float_real_1") = 1)
+(2 rows)
+
+-- 1914 : float8up
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + binary_double_precision_1 = 1.0;
+                                                                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "binary_double_precision_1") = 1)
+(2 rows)
+
+-- 1915 : numeric_uplus
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE + number_numeric3_1 = 1.0;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE ((+ "number_numeric3_1") = 1.0)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_float_real_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_double_precision_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 + 1 = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_smallint_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 + 1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_integer_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 + 1 = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_bigint_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric1_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric1_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric2_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric2_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric3_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE float_numeric1_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("float_numeric1_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE float_numeric2_1 + 1.1 = 1.1;
+                                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("float_numeric2_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_float_real_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_float_real_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE binary_double_precision_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("binary_double_precision_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_smallint_1 + '1' = 1;
+                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_smallint_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_integer_1 + '1' = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_integer_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_bigint_1 + '1' = 1;
+                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_bigint_1" + 1) = 1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric1_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric1_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric2_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric2_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE number_numeric3_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("number_numeric3_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE float_numeric1_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("float_numeric1_1" + 1.1) = 1.1)
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT id FROM all_type WHERE float_numeric2_1 + '1.1' = 1.1;
+                                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on all_type
+   Remote SQL: SELECT "id", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM "oracle_fdw"."all_type" WHERE (("float_numeric2_1" + 1.1) = 1.1)
+(2 rows)
+
+-- 176 : int2pl
+SELECT id FROM all_type WHERE number_smallint_1 + 1::smallint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 177 : int4pl
+SELECT id FROM all_type WHERE number_integer_1 + 1::integer = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 178 : int24pl
+SELECT id FROM all_type WHERE number_smallint_1 + 1::integer = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 179 : int42pl
+SELECT id FROM all_type WHERE number_integer_1 + 1::smallint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 204 : float4pl
+SELECT id FROM all_type WHERE binary_float_real_1 + 1.1::real = 1.1;
+ id 
+----
+  6
+(1 row)
+
+-- 218 : float8pl
+SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1::double precision = 1.1;
+ id 
+----
+  6
+(1 row)
+
+-- 281 : float48pl
+SELECT id FROM all_type WHERE binary_float_real_1 + 1.1::double precision = 1.1;
+ id 
+----
+  6
+(1 row)
+
+-- 285 : float84pl
+SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1::real = 1.1;
+ id 
+----
+  6
+(1 row)
+
+-- 463 : int8pl
+SELECT id FROM all_type WHERE number_bigint_1 + 1::bigint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 837 : int82pl
+SELECT id FROM all_type WHERE number_bigint_1 + 1::smallint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 841 : int28pl
+SELECT id FROM all_type WHERE number_smallint_1 + 1::bigint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 1274 : int84pl
+SELECT id FROM all_type WHERE number_bigint_1 + 1::integer = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 1278 : int48pl
+SELECT id FROM all_type WHERE number_integer_1 + 1::bigint = 1;
+ id 
+----
+  6
+(1 row)
+
+-- 1724 : numeric_add
+SELECT id FROM all_type WHERE number_numeric3_1 + 1.1::numeric = 1.1;
+ id 
+----
+  6
+(1 row)
+
+-- 1910 : int8up
+SELECT id FROM all_type WHERE + number_bigint_1 = 1;
+ id 
+----
+  7
+(1 row)
+
+-- 1911 : int2up
+SELECT id FROM all_type WHERE + number_smallint_1 = 1;
+ id 
+----
+  7
+(1 row)
+
+-- 1912 : int4up
+SELECT id FROM all_type WHERE + number_integer_1 = 1;
+ id 
+----
+  7
+(1 row)
+
+-- 1913 : float4up
+SELECT id FROM all_type WHERE + binary_float_real_1 = 1.0;
+ id 
+----
+  7
+(1 row)
+
+-- 1914 : float8up
+SELECT id FROM all_type WHERE + binary_double_precision_1 = 1.0;
+ id 
+----
+  7
+(1 row)
+
+-- 1915 : numeric_uplus
+SELECT id FROM all_type WHERE + number_numeric3_1 = 1.0;
+ id 
+----
+  7
+(1 row)
+
+SELECT id FROM all_type WHERE binary_float_real_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE binary_double_precision_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_smallint_1 + 1 = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_integer_1 + 1 = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_bigint_1 + 1 = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_numeric1_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_numeric2_1 + 1.1 = 1.1;
+ id 
+----
+  5
+  6
+  7
+(3 rows)
+
+SELECT id FROM all_type WHERE number_numeric3_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE float_numeric1_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE float_numeric2_1 + 1.1 = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE binary_float_real_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE binary_double_precision_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_smallint_1 + '1' = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_integer_1 + '1' = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_bigint_1 + '1' = 1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_numeric1_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE number_numeric2_1 + '1.1' = 1.1;
+ id 
+----
+  5
+  6
+  7
+(3 rows)
+
+SELECT id FROM all_type WHERE number_numeric3_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE float_numeric1_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+
+SELECT id FROM all_type WHERE float_numeric2_1 + '1.1' = 1.1;
+ id 
+----
+  6
+(1 row)
+

@@ -1,0 +1,259 @@
+\c contrib_regression_utf8
+\! sqlplus -s system/manager@orcl @sql/format/init_ora.sql
+
+Session altered.
+
+
+Session altered.
+
+
+Session altered.
+
+
+Session altered.
+
+
+Session altered.
+
+
+Session altered.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+Table truncated.
+
+
+11 rows created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+11 rows created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+
+1 row created.
+
+DELETE FROM oracle_fdw.pg_routine_mapping
+ WHERE rmserver = (SELECT oid FROM pg_foreign_server WHERE srvname = 'ora_server');
+INSERT INTO oracle_fdw.pg_routine_mapping
+SELECT
+	t.rmproc, s.oid, t.rmoptions
+  FROM pg_foreign_server s,
+(
+SELECT *
+  FROM oracle_fdw.pg_routine_mapping, pg_foreign_server
+ WHERE srvname = 'oracle_fdw_template_server'
+) t 
+ WHERE s.srvname = 'ora_server';
+SELECT rmproc, rmoptions
+  FROM oracle_fdw.pg_routine_mapping r, pg_foreign_server s
+ WHERE r.rmserver = s.oid
+   AND srvname = 'ora_server'
+ ORDER BY rmproc;
+                  rmproc                   |                                              rmoptions                                              
+-------------------------------------------+-----------------------------------------------------------------------------------------------------
+ text(character)                           | {format=RTRIM(%s)}
+ lower(text)                               | {format=LOWER(%s)}
+ upper(text)                               | {format=UPPER(%s)}
+ ltrim(text,text)                          | {"format=LTRIM(%s,%s)"}
+ rtrim(text,text)                          | {"format=RTRIM(%s,%s)"}
+ substr(text,integer,integer)              | {"format=(CASE WHEN %2$s < 1 THEN SUBSTR(%1$s,1,%2$s + %3$s - 1) ELSE SUBSTR(%1$s,%2$s,%3$s) END)"}
+ translate(text,text,text)                 | {"format=TRANSLATE(%s,%s,%s)"}
+ ltrim(text)                               | {format=LTRIM(%s)}
+ rtrim(text)                               | {format=RTRIM(%s)}
+ substr(text,integer)                      | {"format=(CASE WHEN %2$s < 1 THEN SUBSTR(%1$s,1) ELSE SUBSTR(%1$s,%2$s) END)"}
+ btrim(text,text)                          | {"format=RTRIM(LTRIM(%1$s,%2$s),%2$s)"}
+ btrim(text)                               | {format=TRIM(%s)}
+ "substring"(text,integer,integer)         | {"format=(CASE WHEN %2$s < 1 THEN SUBSTR(%1$s,1,%2$s + %3$s - 1) ELSE SUBSTR(%1$s,%2$s,%3$s) END)"}
+ "substring"(text,integer)                 | {"format=(CASE WHEN %2$s < 1 THEN SUBSTR(%1$s,1) ELSE SUBSTR(%1$s,%2$s) END)"}
+ length(text)                              | {format=LENGTH(%s)}
+ length(character)                         | {format=LENGTH(RTRIM(%s))}
+ character_length(character)               | {format=LENGTH(RTRIM(%s))}
+ character_length(text)                    | {format=LENGTH(%s)}
+ char_length(character)                    | {format=LENGTH(RTRIM(%s))}
+ octet_length(text)                        | {format=LENGTHB(%s)}
+ octet_length(character)                   | {format=LENGTHB(%s)}
+ char_length(text)                         | {format=LENGTH(%s)}
+ to_char(timestamp with time zone,text)    | {"format=TO_CHAR(%s,%s)"}
+ to_char(numeric,text)                     | {"format=TO_CHAR(%s,%s)"}
+ to_char(integer,text)                     | {"format=TO_CHAR(%s,%s)"}
+ to_char(bigint,text)                      | {"format=TO_CHAR(%s,%s)"}
+ to_char(real,text)                        | {"format=TO_CHAR(%s,%s)"}
+ to_char(double precision,text)            | {"format=TO_CHAR(%s,%s)"}
+ to_number(text,text)                      | {"format=TO_NUMBER(%s,%s)"}
+ to_timestamp(text,text)                   | {"format=TO_TIMESTAMP(%s,%s)"}
+ to_date(text,text)                        | {"format=TO_DATE(%s,%s)"}
+ bit_length(text)                          | {format=LENGTHB(%s)*8}
+ to_char(timestamp without time zone,text) | {"format=TO_CHAR(%s,%s)"}
+ replace(text,text,text)                   | {"format=REPLACE(%s,%s,%s)"}
+ concat("any")                             | {"format=CONCAT(%s,%s)",nargs=2}
+(35 rows)
+

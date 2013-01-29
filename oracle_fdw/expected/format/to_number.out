@@ -1,0 +1,78 @@
+\c contrib_regression_utf8
+SELECT id, to_number(val1, val2) FROM ft_varchar2_c_varchar ORDER BY id;
+ id | to_number 
+----+-----------
+  1 |          
+  2 |          
+  3 |    123456
+  4 |   123.456
+  5 |  -123.456
+  6 |  -123.456
+(6 rows)
+
+--  to_number(text,text)
+EXPLAIN (COSTS FALSE) 
+WITH ft_varchar2_c_varchar AS (SELECT * FROM ft_varchar2_c_varchar)
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123456 ORDER BY id;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Sort
+   Sort Key: ft_varchar2_c_varchar.id
+   CTE ft_varchar2_c_varchar
+     ->  Foreign Scan on ft_varchar2_c_varchar
+           Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_c"
+   ->  CTE Scan on ft_varchar2_c_varchar
+         Filter: (to_number((val1)::text, (val2)::text) = 123456::numeric)
+(7 rows)
+
+EXPLAIN (COSTS FALSE) 
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123456 ORDER BY id;
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Sort Key: id
+   ->  Foreign Scan on ft_varchar2_c_varchar
+         Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_c" WHERE (TO_NUMBER("val1","val2") = 123456)
+(4 rows)
+
+WITH ft_varchar2_c_varchar AS (SELECT * FROM ft_varchar2_c_varchar)
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123456 ORDER BY id;
+ id |  val1   |  val2   
+----+---------+---------
+  3 | 123,456 | 999,999
+(1 row)
+
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123456 ORDER BY id;
+ id |  val1   |  val2   
+----+---------+---------
+  3 | 123,456 | 999,999
+(1 row)
+
+WITH ft_varchar2_c_varchar AS (SELECT * FROM ft_varchar2_c_varchar)
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123.456 ORDER BY id;
+ id |  val1   |  val2   
+----+---------+---------
+  4 | 123.456 | 999.999
+(1 row)
+
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = 123.456 ORDER BY id;
+ id |  val1   |  val2   
+----+---------+---------
+  4 | 123.456 | 999.999
+(1 row)
+
+WITH ft_varchar2_c_varchar AS (SELECT * FROM ft_varchar2_c_varchar)
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = -123.456 ORDER BY id;
+ id |   val1    |   val2    
+----+-----------+-----------
+  5 | 123.456-  | 999.999MI
+  6 | <123.456> | 999.999PR
+(2 rows)
+
+SELECT * FROM ft_varchar2_c_varchar WHERE to_number(val1, val2) = -123.456 ORDER BY id;
+ id |   val1    |   val2    
+----+-----------+-----------
+  5 | 123.456-  | 999.999MI
+  6 | <123.456> | 999.999PR
+(2 rows)
+

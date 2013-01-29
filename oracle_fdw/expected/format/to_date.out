@@ -1,0 +1,103 @@
+\c contrib_regression_utf8
+SET datestyle TO ISO;
+SET timezone TO 'Asia/Tokyo';
+SELECT id, to_date(val1, val2) FROM ft_varchar2_b_varchar ORDER BY id;
+ id |    to_date    
+----+---------------
+  1 | 
+  2 | 
+  3 | 2011-01-02
+  4 | 2011-01-02
+  5 | 2011-01-02
+  6 | 2011-01-02
+  7 | 2011-01-02
+  8 | 2011-01-02
+  9 | 2011-01-01
+ 10 | 0001-11-01 BC
+ 11 | 0001-01-11 BC
+(11 rows)
+
+--  to_date(text,text) char_b
+EXPLAIN (COSTS FALSE) 
+WITH ft_varchar2_b_varchar AS (SELECT * FROM ft_varchar2_b_varchar)
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-02'::date ORDER BY id;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Sort
+   Sort Key: ft_varchar2_b_varchar.id
+   CTE ft_varchar2_b_varchar
+     ->  Foreign Scan on ft_varchar2_b_varchar
+           Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_b"
+   ->  CTE Scan on ft_varchar2_b_varchar
+         Filter: (to_date((val1)::text, (val2)::text) = '2011-01-02'::date)
+(7 rows)
+
+EXPLAIN (COSTS FALSE) 
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-02'::date ORDER BY id;
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Sort Key: id
+   ->  Foreign Scan on ft_varchar2_b_varchar
+         Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_b" WHERE (TO_DATE("val1","val2") = TO_DATE('2011-01-02', 'YYYY-MM-DD'))
+(4 rows)
+
+WITH ft_varchar2_b_varchar AS (SELECT * FROM ft_varchar2_b_varchar)
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-02'::date ORDER BY id;
+ id |     val1     |     val2     
+----+--------------+--------------
+  3 | 2011-01-02   | YYYY-MM-DD
+  4 | 2011:02:01   | YYYY:DD:MM
+  5 | 01--2011--02 | MM--YYYY--DD
+  6 | 01::02::2011 | MM::DD::YYYY
+  7 | 02--2011--01 | DD--YYYY--MM
+  8 | 02::01::2011 | DD::MM::YYYY
+(6 rows)
+
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-02'::date ORDER BY id;
+ id |     val1     |     val2     
+----+--------------+--------------
+  3 | 2011-01-02   | YYYY-MM-DD
+  4 | 2011:02:01   | YYYY:DD:MM
+  5 | 01--2011--02 | MM--YYYY--DD
+  6 | 01::02::2011 | MM::DD::YYYY
+  7 | 02--2011--01 | DD--YYYY--MM
+  8 | 02::01::2011 | DD::MM::YYYY
+(6 rows)
+
+EXPLAIN (COSTS FALSE) 
+WITH ft_varchar2_b_varchar AS (SELECT * FROM ft_varchar2_b_varchar)
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-01'::date ORDER BY id;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Sort
+   Sort Key: ft_varchar2_b_varchar.id
+   CTE ft_varchar2_b_varchar
+     ->  Foreign Scan on ft_varchar2_b_varchar
+           Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_b"
+   ->  CTE Scan on ft_varchar2_b_varchar
+         Filter: (to_date((val1)::text, (val2)::text) = '2011-01-01'::date)
+(7 rows)
+
+EXPLAIN (COSTS FALSE) 
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-01'::date ORDER BY id;
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Sort Key: id
+   ->  Foreign Scan on ft_varchar2_b_varchar
+         Remote SQL: SELECT "id", "val1", "val2" FROM "oracle_fdw"."t_varchar2_b" WHERE (TO_DATE("val1","val2") = TO_DATE('2011-01-01', 'YYYY-MM-DD'))
+(4 rows)
+
+WITH ft_varchar2_b_varchar AS (SELECT * FROM ft_varchar2_b_varchar)
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-01'::date ORDER BY id;
+ id | val1 | val2 
+----+------+------
+  9 | 2011 | YYYY
+(1 row)
+
+SELECT * FROM ft_varchar2_b_varchar WHERE to_date(val1, val2) = '2011-01-01'::date ORDER BY id;
+ id | val1 | val2 
+----+------+------
+(0 rows)
+

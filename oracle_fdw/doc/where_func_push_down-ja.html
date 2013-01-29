@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>WHERE句の関数のpush down</title>
+<!-- Uncoment after the tool has been hosted somewhere.
+<link rel="home" title="oracle_fdw" href="index.html">
+-->
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+<h1 id="oracle_fdw">oracle_fdw 1.0.0</h1>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="where_func_push_down-ja.html">WHERE句の関数のpush down</a>
+</div>
+<hr>
+
+<h2>WHERE句の関数のpush down</h2>
+<p>oracle_fdwでは、WHERE句に指定した関数はデフォルトではpush downされません。
+WHERE句に指定した関数をpush downするには、ルーチンマッピングを定義する必要があります。
+</p>
+
+<h3 id="routine-mapping">ルーチンマッピング</h3>
+<p>ルーチンマッピングは、ローカルの関数から外部サーバの関数へのマッピングを定義します。
+oracle_fdwは、ローカルの関数の外部サーバへのpush downの可否の判定や、リモートに発行するクエリ中の関数呼び出し部分を生成するために、ルーチンマッピングに定義された情報を使用します。
+スーパーユーザは、任意の関数と外部サーバに対応付けるルーチンマッピングを作成することができます。
+</p>
+<p>ルーチンマッピングは、oracle_fdw.pg_routine_mappingという名前の通常のテーブルで管理されます。
+oracle_fdw.pg_routine_mappingテーブルの列構成は以下のとおりです。
+</p>
+
+<table>
+<thead>
+<tr>
+<th>列名</th><th>データ型</th><th>制約</th><th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>rmproc</td><td nowrap>regprocedure</td><td nowrap>プライマリキー</td><td>マッピングする既存の関数のオブジェクト識別子です。</td></tr>
+<tr><td>rmserver</td><td>oid</td><td>プライマリキー</td><td>関数をpush downする対象の、既存の外部サーバのオブジェクト識別子です。</td></tr>
+<tr><td nowrap>rmoptions</td><td>text[]</td><td></td><td>ルーチンマッピングのオプションを"keyword=value"のように指定します。指定可能なオプションは<a href="#routine-mapping-options">ルーチンマッピングのオプション</a>を参照してください。</td></tr>
+</tbody>
+</table>
+
+<h3 id="routine-mapping-options">ルーチンマッピングのオプション</h3>
+<table>
+<thead>
+<tr>
+<th>オプション名</th><th>説明</th><th nowrap>デフォルト値</th><th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td nowrap>format</td><td>WHERE句に指定した関数呼び出しを、リモートに発行するクエリに書式化する際に使用する書式を指定します。
+指定可能な書式はPostgreSQLの組み込み関数の<a href="http://www.postgresql.org/docs/9.1/static/functions-string.html">format関数</a>と同じです。
+ただし、変換指定子のうち%Iと%Lは指定してもエラーにはなりませんが、思わぬ挙動をしてしまうため使用しないでください。
+%sは該当する引数を文字列へ変換します。
+%%は%リテラルを出力します。
+変換では、変換指定子の前に<i>n</i>$を記述することで、明示的なパラメータの位置を参照することができます。
+<i>n</i>は引数の位置です。</td><td>なし（必須）</td><td>func_name(%2$s,%1$s)</td>
+</tr>
+<tr>
+<td>nargs</td><td>ルーチンマッピングに定義した関数が可変長引数を取る関数の場合に、push downされる引数の個数を指定します。
+WHERE句で指定した関数の引数の個数とnargsの値が等しい場合はpush downされ、異なる場合はpush downされません。
+可変長引数を取る関数の場合は必須オプションですが、そうでない関数の場合は指定しても無視されます。</td><td>なし</td><td>2</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="routine-mapping">ルーチンマッピングの操作</h3>
+<p>ルーチンマッピングを操作するには、oracle_fdw.pg_routine_mappingテーブルに対してINSERT、UPDATEおよびDELETEコマンドを実行します。
+CREATE ROUTINE MAPPING のようなコマンドは用意していません。
+スーパーユーザ権限またはoracle_fdw.pg_routine_mappingテーブルに対して各コマンドを実行する権限があるユーザがルーチンマッピングを操作することができます。
+例えば、ローカルのmod関数を、remote_dbとして作成した外部サーバにpush downを可能にする場合は、以下のように記述します。
+</p>
+<pre>
+postgres=# INSERT INTO oracle_fdw.pg_routine_mapping
+postgres-# SELECT 'mod(integer,integer)', oid, '{"format=MOD(%s,%s)"}'
+postgres-#   FROM pg_foreign_server
+postgres-#  WHERE srvname = 'remote_db';
+</pre>
+
+<h3 id="default-mapping">デフォルトマッピング</h3>
+<p>oracle_fdwでは、Oracleで使用頻度が高いと考えられる関数については、ルーチンマッピングの定義が容易に可能な仕組みを用意しています。
+<p>oracel_fdwでは、oracle_fdw_template_serverという名前の外部サーバをEXTENTION作成時に定義します。
+このテンプレート外部サーバには、Oracleで使用頻度が高いと考えられる関数のルーチンマッピングがいくつか定義されています。
+このテンプレート外部サーバに定義みのルーチンマッピングをデフォルトマッピングと呼びます。
+</p>
+<p>テンプレート外部サーバからデフォルトマッピングをコピーしてルーチンマッピングを定義するには、以下のINSERT文の'外部サーバ名'を、実際に定義する外部サーバ名に置き換えて実行します。
+</p>
+
+<pre>
+postgres=# INSERT INTO oracle_fdw.pg_routine_mapping
+postgres-# SELECT t.rmproc, s.oid, t.rmoptions
+postgres-#   FROM pg_foreign_server s, (
+postgres(#        SELECT *
+postgres(#          FROM oracle_fdw.pg_routine_mapping r, pg_foreign_server s
+postgres(#         WHERE srvname = 'oracle_fdw_template_server'
+postgres(#           AND r.rmserver = s.oid) t
+postgres-#  WHERE s.srvname = '外部サーバ名';
+</pre>
+
+<p>テンプレート外部サーバに定義済みの関数の一覧を以下に示します。</p>
+
+<table>
+<thead>
+<tr><th>種別</th><th>関数名</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="17" nowrap>文字列関数</td><td>trim([leading | trailing | both] [characters] from string)</td><td>characters（デフォルトは半角空白）で指定された文字のみを含む最も長い文字列を、stringの先頭、末尾、そしてその両方から削除します。</td></tr>
+<tr><td>btrim(string[, characters])</td><td>characters（デフォルトは半角空白）で指定された文字のみを含む最も長い文字列を、stringの先頭と末尾から削除します。</td></tr>
+<tr><td>ltrim(string[, characters])</td><td>characters（デフォルトは半角空白）で指定された文字のみを含む最も長い文字列を、stringの先頭から削除します。</td></tr>
+<tr><td>rtrim(string[, characters])</td><td>characters（デフォルトは半角空白）で指定された文字のみを含む最も長い文字列を、stringの末尾から削除します。</td></tr>
+<tr><td>length(string)</td><td>文字列中の文字数を返します。</td></tr>
+<tr><td>char_length(string)</td><td>文字列中の文字数を返します。</td></tr>
+<tr><td>character_length(string)</td><td>文字列中の文字数を返します。</td></tr>
+<tr><td>octet_length(string)</td><td>文字列中のバイト数を返します。</td></tr>
+<tr><td>bit_length(string)</td><td>文字列中のビット数を返します。</td></tr>
+<tr><td>lower(string)</td><td>文字列を小文字に変換します。</td></tr>
+<tr><td>upper(string)</td><td>文字列を大文字に変換します。</td></tr>
+<tr><td>replace(string, from, to)</td><td>stringに出現する全てのfrom部分文字列をto部分文字列に置換します。</td></tr>
+<tr><td>substring(string [from from_i] [for count])</td><td>stringのfrom_iからcount文字分の部分文字列を取り出します。from_iを指定しない場合は、stringの先頭からfrom_i文字分の文字を戻します。countを指定しない場合は、stringの末尾までの全ての文字を戻します。</td></tr>
+<tr><td>substring(string, from, [count])</td><td>指定した部分文字列を取り出します（substring(string from from_i for count)と同じです）。</td></tr>
+<tr><td>substr(string, from, [count])</td><td>指定した部分文字列を取り出します（substring(string from from_i for count)と同じです）。</td></tr>
+<tr><td>translate(string, from, to)</td><td>from集合で指定された文字と一致するstringにある全ての文字は、それに対応するtoで指定された文字に置き換えられます。もしfromがtoより長い場合、fromで指定される余分な文字に一致するものは削除されます。</td></tr>
+<tr><td>concat(str[, ...])</td><td>すべての引数を結合します。ただしNULLは無視されます。<br>
+<b>ティップス：</b>concat関数は可変長関数のため、<a href="#routine-mapping-options">nargsオプション</a>に2を指定しています。3つ以上の引数を結合したい場合は、concat(concat(col1,col2),col3)のようにネストして指定するとWHERE句push downされます。</td></tr>
+<tr><td rowspan="7" nowrap>データ型書式設定関数</td><td>to_number(text, text)</td><td>文字列を数値に変換します。</td></tr>
+<tr><td>to_date(text, text)</td><td>文字列を日付に変換します。</td></tr>
+<tr><td>to_timestamp(text, text)</td><td>文字列をタイムスタンプに変換します。</td></tr>
+<tr><td>to_char(timestamp, text)</td><td>タイムスタンプを文字列に変換します。</td></tr>
+<tr><td>to_char(int, text)</td><td>整数を文字列に変換します。</td></tr>
+<tr><td>to_char(double precision, text)</td><td>実数、倍精度数を文字列に変換します。</td></tr>
+<tr><td>to_char(numeric, text)</td><td>数値を文字列に変換します。</td></tr>
+<tr><td nowrap>キャスト関数</td><td>text(character)</td><td>character型からtext型へキャストします。</td></tr>
+</tbody>
+</table>
+
+<h3 id="function-difference">PostgreSQLとOracleの関数の仕様の相異</h3>
+デフォルトマッピングに定義済みの関数の中にも、PostgreSQLとOracleの関数の仕様の相異のため、ある限られた条件の下では、PostgreSQLとOracleで異なる実行結果を返す場合があります。
+このため、そのような関数がOracle側で実行されると、意図しないSELECT結果となったりエラー終了する場合があります。
+この問題は、SELECT文の<a href="http://www.postgresql.org/docs/9.1/static/queries-with.html">CTE</a>を使用して回避できます。
+関数の実行結果がPostgreSQLとOracleで同じとなる関数はWITH句の副問い合わせに指定し、異なる可能性のある関数は主問い合わせのWHERE句に指定してください。
+以下にCTEを使用したSELECT文の例を示します。</p>
+<pre>
+postgres=# WITH filtered_accounts AS (
+postgres(# SELECT "FILLER" FROM remote_accounts
+postgres(#  WHERE substr("FILLER", 2, 3) = 'abc'
+postgres(# )
+postgres-# SELECT count(*) FROM filtered_accounts
+postgres-#  WHERE translate("FILLER", 'abc', '') = '';
+ count
+-------
+     1
+(1 row)
+
+postgres=#
+</pre>
+
+<p>デフォルトマッピングに定義済みの関数の範囲で、SELECT結果の相異に影響するPostgreSQLとOracleの関数の仕様の相異を以下に示します。
+WHERE句で指定した関数が以下の条件に合致する場合は、CTEの外にその関数を指定してください。
+また、SELECT結果の相異に影響する関数以外の仕様の相異については、<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>を参照してください。
+</p>
+
+<table>
+<thead>
+<tr><th>相異点</th><th>PostgreSQLの仕様</th><th>Oracleの仕様</th><th>相異が影響する関数</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>文字列型の引数の値が空文字の場合に返す値</td>
+<td>NULL以外を返します。</td>
+<td>NULLを返します。</td>
+<td>text, trim, btrim, ltrim, rtrim, length, char_length, character_length, octet_length, bit_length, lower, upper, replace, substring, substr, translate, concat</td>
+</tr>
+<tr>
+<td>関数の実行結果が空文字の場合に返す値</td>
+<td>空文字を返します。</td>
+<td>NULLを返します。</td>
+<td>text, trim, btrim, ltrim, rtrim, lower, upper, replace, substring, substr, translate, concat</td>
+</tr>
+<tr>
+<td>文字列中のバイト数を求める関数の引数のデータ型の制限</td>
+<td>全ての文字列型が引数に指定できます。</td>
+<td>引数に指定したデータ型がLOB型かつデータの値がマルチバイトの場合は、エラーが発生します。</td>
+<td>octet_length, bit_length</td>
+</tr>
+<tr>
+<td>固定長文字列型のバイト数を返す関数が返す値</td>
+<td>マルチバイト文字の数に伴ってバイト数も変化します。</td>
+<td>CHAR型をバイト・セマンティクスで定義した場合は、返す値は常に一定になります。
+キャラクタ・セマンティクスで定義した場合は、2,000バイトまではマルチバイト文字の数に伴ってバイト数も変化しますが、2,000バイト以上では返す値は常に一定になります。</td>
+<td>octet_length, bit_length</td>
+</tr>
+<tr>
+<td>replace関数の第2引数または第3引数またはその両方にNULLを指定した場合に返す値</td>
+<td>NULLを返します。</td>
+<td>引数のNULLを空文字として扱ったうえで関数が実行された結果を返します。</td>
+<td>replace</td>
+</tr>
+<tr>
+<td>concat関数の引数に文字列型以外のデータ型を指定した場合の挙動</td>
+<td>DateStyle、IntervalStyle、lc_numericなどの書式設定パラメータの設定値に従って文字列化した値が文字列結合されます。</td>
+<td>NLS_DATE_FORMAT、NLS_TIMESTAMP_FORMAT、NLS_NUMERIC_CHARACTERSなどの書式設定パラメータの設定値に従って文字列化した値が文字列結合されます。</td>
+<td>concat</td>
+</tr>
+<tr>
+<td>データ型書式設定関数の入出力書式の仕様</td>
+<td colspan="2">データ型書式設定関数に使用可能な入出力書式は、PostgreSQLとOracleでは一部の仕様が異なります。
+PostgreSQLのみで使用可能な書式やOracleのみで使用可能な書式が存在します。また、同じ入出力書式でも挙動が異なる書式も存在します。
+データ型書式設定関数をWHERE句に指定する場合は、相異点を調査した上でCTEを使用すべきかを判断する必要があります。
+</td>
+<td>to_number, to_date, to_timestamp, to_char</td>
+</tr>
+<tr>
+<td>データベースエンコーディング</td>
+<td colspan="2">これはPostgreSQLとOracleの仕様の差異ではありませんが、ローカルとリモートの環境の違いの影響で、関数がどちらで実行されたかによってSELECT結果が変わる場合があるため、ここで示します。<br>
+ローカルDBとリモートDBのデータベースエンコーディングが異なる場合は、文字列中のバイト数やバイナリ数を返す関数を引数に指定した要素の値にマルチバイト文字が含まれると、SELECT結果に相異が発生する場合があります。
+</td>
+<td>octet_length, bit_length</td>
+</tr>
+</tbody>
+</table>
+
+<p>PostgreSQLとOracleの関数の仕様の相異のうち、ルーチンマッピングのオプションを工夫して指定することで、SELECT結果の相異を回避できる場合があります。
+例えば、引数の指定順がPostgreSQLとOracleで異なる場合は、formatオプションの変換指定子の前に<i>n</i>$を記述することで、引数の指定順を変更できます。
+デフォルトマッピングに定義済みの関数のうち、回避済みの相異点を以下に示します。
+これらの相違の条件に合う場合は、PostgreSQL側の仕様に基づいて関数の結果が返されることが保証されるため、CTEを使用する必要がありません。
+</p>
+
+<table>
+<thead>
+<tr><th>相異点</th><th>PostgreSQLの仕様</th><th>Oracleの仕様</th><th>相異が影響する関数</th><th>oracle_fdwでの対処方法</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>substr関数の第2引数に0以下の値を指定した場合の挙動</td>
+<td>1文字目を1とし、1文字目より前にさかのぼって開始文字を指定したことになります。</td>
+<td>0の場合は1として扱われ、負数の場合は文字列の末尾の文字を-1として逆方向に数えます。</td>
+<td>substr</td>
+<td>ルーチンマッピングのformatオプションに、第2引数が0以下の場合の処理をCASE式で切り替えるような書式を指定しています。</td>
+</tr>
+<tr>
+<td>trim関数の削除対象文字に指定可能な文字数</td>
+<td>複数の文字が指定可能です。</td>
+<td>1文字しか指定できず、複数の文字を指定するとエラーとなります。</td>
+<td>trim, btrim</td>
+<td>ltrim関数とrtrim関数は、Oracleにおいても複数の文字を削除対象文字として指定できるため、ルーチンマッピングのformatオプションに、この2つの関数を組み合わせた書式を指定しています。</td>
+</tr>
+<tr>
+<td>固定長文字列型を引数に指定した場合の関数の挙動</td>
+<td>末尾の空白を取り除いた上で処理されます。</td>
+<td>末尾の空白を有効な文字として扱った上で処理されます。</td>
+<td>length, trim, btrim, ltrim, upper, lower, replace</td>
+<td>length関数の場合は、末尾の空白を取り除く関数のrtrimをと組み合わせて、ルーチンマッピングのformatオプションに書式を指定しています。
+length関数以外の関数は、character型からtext型へのキャストをpush downする際にrtrim関数がクエリに追加されるため、formatオプションではrtrimを指定していません。</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="where_func_push_down-ja.html">WHERE句の関数のpush down</a>
+</div>
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+
+
+<title>データ型マッピング</title>
+<!-- Uncoment after the tool has been hosted somewhere.
+<link rel="home" title="oracle_fdw" href="http://pgstatsinfo.projects.postgresql.org/index.html">
+-->
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head><body>
+<h1 id="oracle_fdw">oracle_fdw 1.0.0</h1>
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="data_mapping-ja.html">データ型マッピング</a>
+</div>
+<hr>
+
+<h2 id="data-type-mapping">データ型マッピング</h2>
+<p>oracle_fdw用の外部テーブルを作成する際は、Oracleのデータ型に応じて、PostgreSQL側で定義可能なデータ型に制限があります。
+oracle_fdwがサポートするデータ型マッピングを以下に示します。</p>
+
+<table>
+<thead>
+<tr><th>種別</th><th>Oracleのデータ型</th><th>PostgreSQLのデータ型</th><th>備考</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="7" nowrap>数値データ型</td><td>BINARY_FLOAT</td><td>real</td><td rowspan="2">PostgreSQL、Oracleともに、浮動小数点データ型はIEEE規格754に準拠していますが、実際に扱える上限値や下限値はそれぞれで異なります。oracle_fdwでは、それぞれのドキュメントに書かれている値域の範囲のうち、狭いほうの範囲を超える値はサポートしません。サポートする範囲を超えた値がOracleに格納されている場合は、検索結果が意図しない結果になる場合があります。</td></tr>
+<tr><td>BINARY_DOUBLE</td><td>double precision</td></tr>
+<tr><td rowspan="4" nowrap>NUMBER</td><td>smallint</td><td>Oracleに格納されている値の範囲が-32,768から+32,767 の整数に限定されている場合は、smallint型にマッピングしてください。小数や範囲外の値がOracleに格納されている場合は、検索実行時にエラーとなります。</td></tr>
+<tr><td>integer</td><td>Oracleに格納されている値の範囲が-2,147,483,648から+2,147,483,647の整数に限定されている場合は、integer型にマッピングしてください。小数や範囲外の値がOracleに格納されている場合は、検索実行時にエラーとなります。</td></tr>
+<tr><td>bigint</td><td>Oracleに格納されている値の範囲が-9,223,372,036,854,775,808から9,223,372,036,854,775,807の整数に限定されている場合は、bigint型にマッピングしてください。小数や範囲外の値がOracleに格納されている場合は、検索実行時にエラーとなります。</td></tr>
+<tr><td>numeric</td><td>Oracleに格納されている値の範囲がbigintの値の範囲を超えているか、少数が格納されている場合はnumeric型にマッピングしてください。
+PostgreSQL側のnumeric型に指定する精度および位取りは、Oracle側のNUMBER型の精度および位取りと同じ値を指定してください。ただし、PostgreSQLのnumeric型の位取りは0以上を指定する必要があるため、Oracle側のNUMBER型の位取りの定義が負の場合は、PostgreSQL側のnumeric型の位取りには0を指定してください。</td></tr>
+<tr><td>FLOAT</td><td>numeric</td><td>Oracle側のFLOAT型の2進精度を10進精度に変換した値を、PostgreSQL側のnumeric型の精度に指定してください。2進精度に0.30103を掛けることで10進精度に変換できます。</td></tr>
+<tr><td rowspan="12" nowrap>文字データ型</td><td>CHAR</td><td>char</td><td>PostgreSQL側のchar型に指定する長さ制限は、Oracle側のCHAR型の長さ制限と同じ値を指定してください。Oracleの長さ制限は、バイト数または文字数で指定できるのに対してPostgreSQLでは文字数でのみ指定できますが、指定方法の相異はSELECT結果には影響しません。</td></tr>
+<tr><td>NCHAR</td><td>char</td><td>PostgreSQL側のchar型に指定する長さ制限は、Oracle側のNCHAR型の長さ制限と同じ値を指定してください。</td></tr>
+<tr><td rowspan="2">VARCHAR2</td><td>varchar</td><td rowspan="2">PostgreSQL側のvarchar型に指定する長さ制限は、Oracle側のVARCHAR2型の長さ制限と同じ値を指定してください。Oracleの長さ制限は、バイト数または文字数で指定できるのに対してPostgreSQLでは文字数でのみ指定できますが、指定方法の相異はSELECT結果には影響しません。</td></tr>
+<tr><td>text</td></tr>
+<tr><td rowspan="2">NVARCHAR2</td><td>varchar</td><td rowspan="2">PostgreSQL側のvarchar型に指定する長さ制限は、Oracle側のNVARCHAR2型の長さ制限と同じ値を指定してください。</td></tr>
+<tr><td>text</td></tr>
+<tr><td rowspan="2">LONG</td><td>varchar</td><td rowspan="6">Oracleに格納されている(1G-2)バイトまでの値を扱えます。(1G-2)バイトを超える値を検索した場合は、検索実行時にエラーとなります。また、Oracle側のデータ型がLONG型の場合は<a href="#long_restrictions">LONG型、LONG RAW型の制限</a>を参照してください。</td></tr>
+<tr><td>text</td></tr>
+<tr><td rowspan="2">CLOB</td><td>varchar</td></tr>
+<tr><td>text</td></tr>
+<tr><td rowspan="2">NCLOB</td><td>varchar</td></tr>
+<tr><td>text</td></tr>
+<tr><td rowspan="7" nowrap>日付/時刻データ型</td><td rowspan="2" nowrap>DATE</td><td>date</td><td>Oracleに格納されている値の時刻部分が0時0分0秒の場合は、PostgreSQL側のdate型にマッピングしてください。時刻部分が0時0分0秒以外の場合は、時刻部分が切り捨てられた値として取得することはできますが、WHERE句の条件にDATE型をマッピングした列を指定した場合、検索結果が意図しない結果となる場合があるため、この場合はtimestamp型にマッピングしてください。</td></tr>
+<tr><td>timestamp</td><td>Oracleに格納されている値の時刻部分が0時0分0秒以外の値を含む場合は、PostgreSQL側ではtimestamp型にマッピングしてください。PostgreSQL側のtimestamp型の精度には0を指定してください。</td></tr>
+<tr><td>TIMESTAMP</td><td>timestamp</td><td>PostgreSQL側のtimestamp型に指定する精度は、Oracle側のTIMESTAMP型の精度と同じ値を指定してください。Oracle側のTIMESTAMP型の精度が7以上の場合は、PostgreSQL側のtimestamp型の精度に6を指定してください。精度を越えた値は切り捨てられます。Oracle側のTIMESTAMP型の精度が7以上の場合の注意点は<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>を参照してください。</td></tr>
+<tr><td>TIMESTAMP WITH TIME ZONE</td><td rowspan="2">timestamp with time zone</td><td rowspan="2">PostgreSQL側のtimestamp with time zone型に指定する精度は、Oracle側のTIMESTAMP WITH TIME ZONE型の精度と同じ値を指定してください。Oracle側のTIMESTAMP WITH TIME ZONE型の精度が7以上の場合は、PostgreSQL側のtimestamp with time zone型の精度に6を指定してください。精度を越えた値は切り捨てられます。Oracle側のTIMESTAMP WITH TIME ZONE型の精度が7以上の場合の注意点は<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>を参照してください。また、OracleのTIMESTAMP WITH TIME ZONE型はタイムゾーンの情報を持っていますが、SELECT結果にはタイムゾーン情報は含まれず、<a href="http://www.postgresql.org/docs/9.1/static/runtime-config-client.html#RUNTIME-CONFIG-CLIENT-FORMAT">timezone</a>に設定されたタイムゾーンに変換されて取得されます。</td></tr>
+<tr><td>TIMESTAMP WITH LOCAL TIME ZONE</td></tr>
+<tr><td>INTERVAL YEAR TO MONTH</td><td>interval</td><td>Oracleに格納されている値の範囲が-178,000,000年から178,000,000年のデータを扱えます。PostgreSQLで扱える範囲外の値がOracleに格納されている場合は、検索結果が意図しない結果となる場合があります。</td></tr>
+<tr><td>INTERVAL DAY TO SECOND</td><td>interval</td><td>PostgreSQL側のinterval型に指定する精度は、Oracle側のINTERVAL DAY TO SECOND型の精度と同じ値を指定してください。Oracle側のINTERVAL DAY TO SECOND型の精度が7以上の場合は、PostgreSQL側のinterval型の精度に6を指定してください。精度を越えた値は切り捨てられます。Oracle側のINTERVAL DAY TO SECOND型の精度が7以上の場合の注意点は<a href="difference-ja.html">PostgreSQLとOracleの仕様の相異</a>を参照してください。</td></tr>
+<tr><td rowspan="4" nowrap>バイナリ列データ型</td><td>RAW</td><td>bytea</td><td>OracleのRAW型は最大サイズを指定する必要がありますが、PostgreSQLのbytea型はサイズ指定は不要です。この相異はSELECT結果には影響しません。</td></tr>
+<tr><td>LONG RAW</td><td>bytea</td><td rowspan="3">Oracleに格納されている((1G-2)/2)バイト(536,870,911バイト)までの値を扱えます。((1G-2)/2)バイトを超える値を検索した場合は、検索実行時にエラーとなります。また、<a href="#long_restrictions">LONG型、LONG RAW型の制限</a>を参照してください。</td></tr>
+<tr><td>BLOB</td><td rowspan="2">Oracleに格納されている(1G-2)バイトまでの値を扱えます。(1G-2)バイトを超える値を検索した場合は、検索実行時にエラーとなります。</td></tr>
+<tr><td>BFILE</td></tr>
+<tr><td rowspan="2" nowrap>ROWIDデータ型</td><td>ROWID</td><td rowspan="2">なし</td><td rowspan="2">PostgreSQLにROWIDデータ型相当のデータ型がないため、外部テーブルの列として定義できるデータ型がありません。ROWIDデータ型を文字データ型にマッピングすることで、ROWIDデータ型のデータを文字データとして取得することはできますが、WHERE句の条件にROWIDデータ型をマッピングした列を指定した場合、検索結果が意図しない結果となる場合があります。</td></tr>
+<tr><td>UROWID</td></tr>
+</tbody>
+</table>
+
+<h3 id="long_restrictions">LONG型、LONG RAW型の制限</h3>
+Oracleのテーブルに、LONG型またはLONG RAW型の列を含む場合は、max_value_lenを<a href="oracle_fdw-ja.html#valid-options">FDWオプション</a>で指定してください。指定しない場合は検索実行時にエラーとなります。これは、LONG型およびLONG RAW型は列バッファの自動調整をサポートしていないためです。
+
+<hr>
+
+<div class="navigation">
+  <a href="oracle_fdw-ja.html">oracle_fdw</a> &gt;
+  <a href="data_mapping-ja.html">データ型マッピング</a>
+</div>
+
+<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+
+<!--
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script src="pg_statsinfo-ja_files/ga.js" type="text/javascript"></script>
+<script type="text/javascript">
+try{
+var pageTracker = _gat._getTracker("UA-10244036-6");
+pageTracker._trackPageview();
+} catch(err) {}
+</script>
+-->
+</body>
+</html>

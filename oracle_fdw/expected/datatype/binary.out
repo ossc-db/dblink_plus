@@ -1,0 +1,85 @@
+\c contrib_regression_utf8
+\pset null '(null)'
+-- data type
+SELECT * FROM ft_raw;
+ id |        val1        |        val2        
+----+--------------------+--------------------
+  1 | \x414243444546     | \x414243444546
+  2 | \x5c78414243444546 | \x5c78414243444546
+  3 | (null)             | (null)
+  4 | (null)             | (null)
+(4 rows)
+
+SELECT * FROM ft_blob;
+ id |        val1        |        val2        
+----+--------------------+--------------------
+  1 | \x414243444546     | \x414243444546
+  2 | \x5c78414243444546 | \x5c78414243444546
+  3 | (null)             | (null)
+  4 | (null)             | (null)
+(4 rows)
+
+SELECT * FROM ft_bfile;
+ id |      val1      |      val2      
+----+----------------+----------------
+  1 | \x414142424343 | \x414142424343
+  1 | \x414142424343 | \x414142424343
+  3 | (null)         | (null)
+  4 | (null)         | (null)
+(4 rows)
+
+SELECT * FROM ft_raw_text;
+ id |   val1   |   val2   
+----+----------+----------
+  1 | ABCDEF   | ABCDEF
+  2 | \xABCDEF | \xABCDEF
+  3 | (null)   | (null)
+  4 | (null)   | (null)
+(4 rows)
+
+SELECT * FROM ft_blob_text;
+ id |   val1   |   val2   
+----+----------+----------
+  1 | ABCDEF   | ABCDEF
+  2 | \xABCDEF | \xABCDEF
+  3 | (null)   | (null)
+  4 | (null)   | (null)
+(4 rows)
+
+SELECT * FROM ft_bfile_text;
+ id |  val1  |  val2  
+----+--------+--------
+  1 | AABBCC | AABBCC
+  1 | AABBCC | AABBCC
+  3 | (null) | (null)
+  4 | (null) | (null)
+(4 rows)
+
+SELECT * FROM ft_longraw;
+ERROR:  max_value_len is required
+DETAIL:  Doesn't support automatic expansion of the column buffer if LONG data type or LONG RAW data type is part of the foreign table.
+HINT:  You must specify value more than maximum data size of all rows of foreign table in max_value_len for the row buffer.
+SELECT * FROM ft_longraw_text;
+ERROR:  max_value_len is required
+DETAIL:  Doesn't support automatic expansion of the column buffer if LONG data type or LONG RAW data type is part of the foreign table.
+HINT:  You must specify value more than maximum data size of all rows of foreign table in max_value_len for the row buffer.
+ALTER FOREIGN TABLE ft_longraw OPTIONS (ADD max_value_len '1024');
+ALTER FOREIGN TABLE ft_longraw_text OPTIONS (ADD max_value_len '1024');
+SELECT * FROM ft_longraw;
+ id |        val1        
+----+--------------------
+  1 | \x414243444546
+  2 | \x5c78414243444546
+  3 | (null)
+  4 | (null)
+(4 rows)
+
+SELECT * FROM ft_longraw_text;
+ id |   val1   
+----+----------
+  1 | ABCDEF
+  2 | \xABCDEF
+  3 | (null)
+  4 | (null)
+(4 rows)
+

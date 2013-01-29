@@ -1,0 +1,9 @@
+\c contrib_regression_utf8
+
+COPY (SELECT * FROM large_raw) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_longraw) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_blob) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_bfile) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_long) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_clob) TO STDOUT (FORMAT CSV);
+COPY (SELECT * FROM large_nclob) TO STDOUT (FORMAT CSV);

@@ -1,0 +1,304 @@
+\c contrib_regression_utf8
+CREATE FOREIGN TABLE char10_char10 (id integer, val char(10))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'char10');
+CREATE FOREIGN TABLE char10_char2(id integer, val char(2))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'char10');
+CREATE FOREIGN TABLE char10_varchar10(id integer, val varchar(10))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'char10');
+CREATE FOREIGN TABLE varchar10_varchar10 (id integer, val varchar(10))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'varchar10');
+CREATE FOREIGN TABLE varchar10_varchar2 (id integer, val varchar(2))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'varchar10');
+CREATE FOREIGN TABLE varchar10_char10 (id integer, val char(10))
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'varchar10');
+CREATE FOREIGN TABLE mix (
+	id			integer,
+	char_10		char(10),
+	char_2 		char(2),
+	varchar_10 	varchar(10),
+	varchar_2 	varchar(2)
+)
+SERVER ora_server OPTIONS (nspname 'oracle_fdw', relname 'mix');
+SELECT id, val, length(val) FROM char10_char10;
+ id |      val      | length 
+----+---------------+--------
+  1 | abc           |      3
+  2 | ABC           |      3
+  3 | あいう        |      3
+  4 | アイウ        |      3
+  5 |               |      0
+  6 | 　　　        |      3
+(6 rows)
+
+SELECT id, val, length(val) FROM char10_char2;
+ERROR:  value too long for type character(2)
+SELECT id, val, length(val) FROM char10_char2 WHERE id = 5;
+ id | val | length 
+----+-----+--------
+  5 |     |      0
+(1 row)
+
+SELECT id, val, length(val) FROM char10_varchar10;
+ id |      val      | length 
+----+---------------+--------
+  1 | abc           |     10
+  2 | ABC           |     10
+  3 | あいう        |     10
+  4 | アイウ        |     10
+  5 |               |     10
+  6 | 　　　        |     10
+(6 rows)
+
+SELECT id, val, length(val) FROM varchar10_varchar10;
+ id |    val    | length 
+----+-----------+--------
+  1 | abc       |      3
+  2 | ABC       |      3
+  3 | あいう    |      3
+  4 | アイウ    |      3
+  5 |           |      3
+  6 | 　　　    |      3
+ 11 | abc       |      6
+ 12 | ABC       |      6
+ 13 | あいう    |      6
+ 14 | アイウ    |      6
+ 15 |           |      6
+ 16 | 　　　    |      6
+(12 rows)
+
+SELECT id, val, length(val) FROM varchar10_varchar2;
+ERROR:  value too long for type character varying(2)
+SELECT id, val, length(val) FROM varchar10_varchar2 WHERE id = 5;
+ id | val | length 
+----+-----+--------
+  5 |     |      2
+(1 row)
+
+SELECT id, val, length(val) FROM varchar10_char10;
+ id |      val      | length 
+----+---------------+--------
+  1 | abc           |      3
+  2 | ABC           |      3
+  3 | あいう        |      3
+  4 | アイウ        |      3
+  5 |               |      0
+  6 | 　　　        |      3
+ 11 | abc           |      3
+ 12 | ABC           |      3
+ 13 | あいう        |      3
+ 14 | アイウ        |      3
+ 15 |               |      0
+ 16 | 　　　        |      3
+(12 rows)
+
+EXPLAIN (COSTS FALSE) SELECT * FROM char10_char10 WHERE val = ' ';
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan on char10_char10
+   Remote SQL: SELECT "id", "val" FROM "oracle_fdw"."char10" WHERE ("val" = ' ')
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT * FROM char10_char10 WHERE val = '' OR dummy();
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Foreign Scan on char10_char10
+   Filter: ((val = ''::bpchar) OR dummy())
+   Remote SQL: SELECT "id", "val" FROM "oracle_fdw"."char10"
+(3 rows)
+
+SELECT * FROM char10_char10 WHERE val = 'あいう       ';
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = 'あいう        ';
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = '          ';
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = '           ';
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = 'あいう       ' OR dummy();
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = 'あいう        ' OR dummy();
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = '          ' OR dummy();
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_char10 WHERE val = '           ' OR dummy();
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = 'あいう       ';
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = 'あいう        ';
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = '          ';
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = '           ';
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = 'あいう       ' OR dummy();
+ id |      val      
+----+---------------
+  3 | あいう       
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = 'あいう        ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM char10_varchar10 WHERE val = '          ' OR dummy();
+ id |    val     
+----+------------
+  5 |           
+(1 row)
+
+SELECT * FROM char10_varchar10 WHERE val = '           ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = 'あいう       ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = 'あいう        ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = '          ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = '           ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = 'あいう       ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = 'あいう        ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = '          ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_varchar10 WHERE val = '           ' OR dummy();
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = 'あいう       ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = 'あいう        ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = '          ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = '           ';
+ id | val 
+----+-----
+(0 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = 'あいう       ' OR dummy();
+ id |      val      
+----+---------------
+  3 | あいう       
+ 13 | あいう       
+(2 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = 'あいう        ' OR dummy();
+ id |      val      
+----+---------------
+  3 | あいう       
+ 13 | あいう       
+(2 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = '          ' OR dummy();
+ id |    val     
+----+------------
+  5 |           
+ 15 |           
+(2 rows)
+
+SELECT * FROM varchar10_char10 WHERE val = '           ' OR dummy();
+ id |    val     
+----+------------
+  5 |           
+ 15 |           
+(2 rows)
+
+EXPLAIN (COSTS FALSE) SELECT * FROM mix WHERE char_10 = char_2;
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on mix
+   Remote SQL: SELECT "id", "char_10", "char_2", "varchar_10", "varchar_2" FROM "oracle_fdw"."mix" WHERE ("char_10" = "char_2")
+(2 rows)
+
+SELECT * FROM mix WHERE char_10 = char_2;
+ id |  char_10   | char_2 | varchar_10 | varchar_2 
+----+------------+--------+------------+-----------
+  1 | a          | a      | a          | a
+  2 | a          | a      | a          | a 
+(2 rows)
+
