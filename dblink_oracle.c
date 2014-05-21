@@ -604,7 +604,7 @@ oralink_call(oralink_connection *conn, const char *func, int fetchsize, int max_
 	OCIBind			*bnd1p;
 
 	str = strdup(func);
-	if ((p = strrchr(str, '(')))
+	if ((p = strchr(str, '(')))
 		*p++ = 0;
 	else
 		return false;
