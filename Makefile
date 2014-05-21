@@ -28,16 +28,9 @@ PG_CPPFLAGS += -DENABLE_SQLITE3
 SHLIB_LINK += -lsqlite3
 endif
 
-ifdef USE_PGXS
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
-else
-subdir = contrib/dblink_plus
-top_builddir = ../..
-include $(top_builddir)/src/Makefile.global
-include $(top_srcdir)/contrib/contrib-global.mk
-endif
 
 ifneq ($(ORACLE),0)
 ifeq ($(PORTNAME),win32)
