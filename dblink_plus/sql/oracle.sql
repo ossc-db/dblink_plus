@@ -117,6 +117,9 @@ SELECT dblink.disconnect('conn_oracle');
 -- dblink.call() with an anonymous connection
 SELECT * FROM dblink.call('server_oracle', 'dblink.f_test(1)') AS t(a integer);
 
---  dblink.call() with max_value_len option
+-- dblink.call() with oracle standard library function as argument to oracle stored procedure
+SELECT * FROM dblink.call('server_oracle', 'dblink.f_test(ceil(3.1))') AS t(a integer);
+
+-- dblink.call() with max_value_len option
 SELECT * FROM dblink.call('server_oracle2', 'dblink.f_test(1)') AS t(a integer);
 SELECT * FROM dblink.call('server_oracle3', 'dblink.f_test(1)', 0, 4) AS t(a integer);
