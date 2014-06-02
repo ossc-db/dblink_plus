@@ -460,7 +460,7 @@ dblink_call(PG_FUNCTION_ARGS)
  * dblink_connections() :
  * SETOF (name text, server oid, status text, keep boolean)
  */
-#define DBLINK_COLS		4
+#define DBLINK_COLS		5
 Datum
 dblink_connections(PG_FUNCTION_ARGS)
 {
@@ -515,6 +515,7 @@ dblink_connections(PG_FUNCTION_ARGS)
 			values[i++] = CStringGetTextDatum(NameStr(conn->name));
 			values[i++] = ObjectIdGetDatum(conn->server);
 			values[i++] = CStringGetTextDatum(ConnStatusName[conn->status]);
+			values[i++] = BoolGetDatum(conn->use_xa);
 			values[i++] = BoolGetDatum(conn->keep);
 
 			Assert(i == DBLINK_COLS);

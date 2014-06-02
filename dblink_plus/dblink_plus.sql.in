@@ -55,6 +55,7 @@ CREATE FUNCTION dblink.connections(
 	OUT name text,
 	OUT server oid,
 	OUT status text,
+	OUT use_xa boolean,
 	OUT keep boolean)
 RETURNS SETOF record AS
 'MODULE_PATHNAME', 'dblink_connections' LANGUAGE C STRICT;
