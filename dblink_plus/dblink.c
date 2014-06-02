@@ -27,6 +27,9 @@
 #include <unistd.h>
 #endif	/* ! WIN32 */
 
+/* required to configure GUC paramer */
+#include "utils/guc.h"
+
 /*
  * TODO: replace elog() to ereport() with proper error codes.
  */
@@ -135,13 +138,34 @@ static int32	next_cursor_id = 0;
 
 #define INVALID_CURSOR		0
 
+/* This variable is use by a custom GUC parameter dblink_plus.use_xa. 
+ * This parameter is true as default in order to maintain the preveious behavior.*/
+bool use_xa;
+
 /*
  * Module load callback
  */
+
 void
 _PG_init(void)
 {
-	srandom((unsigned int) time(NULL));
+        /*  Define custom GUC variables. */
+        DefineCustomBoolVariable("dblink_plus.use_xa",
+                                                           "Parameter used for dblink_plus.",
+                                                           NULL,
+                                                           &use_xa,
+                                                           true,
+                                                           PGC_USERSET,
+                                                           0,
+#if PG_VERSION_NUM >= 90100
+                                                           NULL,
+#endif
+                                                           NULL, NULL);
+
+      EmitWarningsOnPlaceholders("dblink_plus");
+
+      srandom((unsigned int) time(NULL));
+
 }
 
 /*
@@ -604,7 +628,8 @@ doConnect(const text *name, const text *servername, bool *isNew)
 	{
 		conn->status = CS_UNUSED;
 		conn->server = server->serverid;
-		conn->use_xa = true;
+		/* assign value setting in postgresql.conf dblink_plus.use_xa variable to connection use_xa.*/
+		conn->use_xa = use_xa;
 	}
 
 	if (conn->status == CS_UNUSED)
