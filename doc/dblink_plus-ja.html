@@ -18,8 +18,8 @@
 <div class="index">
 <ol>
 <li><a href="#name">名前</a></li>
-<li><a href="#synopsis">概要</a></li>
-<li><a href="#description">説明</a></li>
+<li><a href="#synopsis">API</a></li>
+<li><a href="#description">概要</a></li>
 <li><a href="#examples">使用例</a></li>
 <li><a href="#functions">関数</a></li>
 <li><a href="#restrictions">使用上の注意と制約</a></li>
@@ -33,7 +33,7 @@
 <h2 id="name">名前</h2>
 <p>dblink_plus -- 外部データベース・サーバに接続し、SQLを実行します。</p>
 
-<h2 id="synopsis">概要</h2>
+<h2 id="synopsis">API</h2>
 <p>
 dblink.connect(server, use_xa DEFAULT true) : boolean<br>
 dblink.connect(name, server, use_xa DEFAULT true) : boolean<br>
@@ -48,17 +48,17 @@ dblink.connections() : SETOF record<br>
 </p>
 
 
-<h2 id="description">説明</h2>
+<h2 id="description">概要</h2>
 <p>
 データベースセッション内から他のデータベースへ接続するためのモジュールです。PostgreSQL 以外のデータベース・サーバへの接続をサポートしています。dblink_plus を使うことにより商用データベースからのデータ移行が外部ファイルを介さずに行えるほか、異種RDBMS間のオンラインでのテーブル結合等が実現可能となります。
 </p>
 <p>
-dblink_plus は contrib/dblink と異なり、リモートのトランザクションは二相コミットを使用します。
-ローカルのトランザクションがコミット / ロールバックした場合、リモートのトランザクションも同様にコミット / ロールバックします。
+dblink_plus は contrib/dblink と異なり、リモートのトランザクションを含めた2相コミットが可能です。
+即ち、ローカルのトランザクションがコミット / ロールバックした場合、リモートのトランザクションも同様にコミット / ロールバックします。
 特に更新処理にて、一貫性のあるデータベース操作を容易に実現できます。
 </p>
 <p>
-外部データベース・コネクタにはプラグイン方式を採用しており、PostgreSQL, Oracle, MySQL, sqlite3 に接続できます。
+外部データベース・コネクタにはプラグイン方式を採用しており、PostgreSQL, Oracle Database, MySQL, sqlite3 に接続できます。
 </p>
 
 
@@ -73,8 +73,12 @@ dblink_plus は自動トランザクション管理をサポートしていま�
 =# COMMIT;  -- ローカルのコミットですが、リモートのOracleも自動的にコミットされます
 </pre>
 <p>
-自動トランザクションの有効／無効は、外部サーバーへの接続時に true/false で指定します。詳細は dblink.connect() を参照ください。
+自動トランザクションの有効／無効は、外部サーバーへの接続時に dblink.connect() の引数 use_xa として true/false で指定できます。use_xa は GUC パラメータとして、 postgresql.conf に設定できます。GUCパラメータとして設定した値は、外部サーバへの接続時にデフォルト値として使用され、接続時に明示的に指定した値が優先されます。
 </p>
+<pre>
+custom_variable_classes = 'dblink_plus'     # PostgreSQL9.2以降ではこの項目は不要
+dblink_plus.use_xa = off                    # デフォルトは on (true)
+</pre>
 
 <h3>コネクタ・プラグインについて</h3>
 <p>
@@ -120,12 +124,14 @@ sqlite3用のコネクタです。ビルドおよび実行にはsqlite3ライブ
 
 <h2 id="examples">使用例</h2>
 <p>dblink_plus を使用する前に、外部データラッパ、外部サーバ、ユーザマッピングを作成する必要があります。
-CREATE FOREIGN DATA WRAPPER にて、VALIDATOR に dblink_plus が提供するコネクタを指定してください。
 </p>
 
 <pre>=# CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;
 =# CREATE SERVER my_server FOREIGN DATA WRAPPER postgres OPTIONS (dbname 'mydb');
 =# CREATE USER MAPPING FOR local_user SERVER my_server OPTIONS (user 'remote_user');</pre>
+
+<p>接続する先のDBに応じて、CREATE FOREIGN DATA WRAPPER にて VALIDATOR に dblink_plus が提供するコネクタを指定してください。
+</p>
 
 <h3>OracleコネクタでのOPTIONSの指定</h3>
 <p>CREATE SERVERでは dbname と max_value_len を、CREATE USER MAPPINGでは user と password を指定します。</p>
@@ -382,6 +388,39 @@ Oracle外部サーバ定義の 'max_value_len' オプションと同様の効果
 現在使用中の接続の一覧を返すビューです。
 </p>
 
+<table>
+  <tr>
+    <th>カラム名</th>
+    <th>データ型</th>
+    <th>説明</th>
+  </tr>
+  <tr>
+    <td>name</td>
+    <td>text</td>
+    <td>接続に付けた名前です。明示的に指定していない場合、外部サーバ名と同じです。</td>
+  </tr>
+  <tr>
+    <td>server</td>
+    <td>oid</td>
+    <td>接続先の外部サーバの oid です。外部サーバの oid は pg_foreign_server カタログで確認できます。</td>
+  </tr>
+  <tr>
+    <td>status</td>
+    <td>text</td>
+    <td>接続の使用状態です。<br> - idle : 接続されて何も行なっていない状態<br> - used : 2相コミットのトランザクション中の状態<br> - prepared : 2相コミットでのPREPARE状態</td>
+  </tr>
+  <tr>
+    <td>use_xa</td>
+    <td>boolean</td>
+    <td>接続が2相コミットを利用しているかどうかのフラグです。use_xa にて指定されます。</td>
+  </tr>
+  <tr>
+    <td>keep</td>
+    <td>boolean</td>
+    <td>接続が dblink.connect() 経由で行われたものであるかどうかのフラグです。<br>dblink.connect() が開始した接続は dblink.disconnect() されるまで接続が維持されます。</td>
+  </tr>
+</table>
+
 <h3>dblink.postgres(text[], oid) RETURNS boolean</h3> 
 <p>
 PostgreSQL に接続するためのコネクタです。
@@ -438,7 +477,45 @@ dblink_plus を使用する非スーパーユーザには、以下の3種類の�
 dblink_plus は、SELECT 文で実行されるため、ローカルのGUCパラメータ log_statement を mod に設定して更新系SQLを実行してもログには残りません。そのため、dblink_plus を使用したログを残すためには、ローカル側の log_statement を all に設定してください。
 
 <h3>dblink_plus を使用する環境</h3>
-自動トランザクション有効の場合、内部で DELETE トリガを使用しています。そのため、ホットスタンバイ等の読み取り専用の環境では、自動トランザクション有効の処理ができないので、注意してください。
+<p>自動トランザクション有効の場合、内部で DELETE トリガを使用します。そのため、レプリケーション構成でのスタンバイサーバや、ホットスタンバイサーバ等の読み取り専用の環境では、自動トランザクション有効の処理ができないので、注意してください。
+実行しようとした場合、以下のエラーが発生します。
+</p>
+
+<pre>
+postgres=# SELECT * FROM dblink.query('server_oracle', 'SELECT * FROM tbl') AS t(c1 int, c2 text);
+ERROR:  cannot execute DELETE in a read-only transaction
+CONTEXT:  SQL statement "DELETE FROM dblink.atcommit"
+</pre>
+
+<p>これらのサーバでdblink_plusを使用する場合、2総コミットを無効にして外部サーバに接続する必要があります。
+use_xa を false にした接続を作成して使用するか、postgresql.conf にて use_xa を off に設定してください。</p>
+以下は、use_xa を false にした接続を明示的に作成する例です。
+<pre>
+postgres=# SELECT dblink.connect('my_conn', 'server_oracle', false);
+ connect
+---------
+ t
+(1 行)
+
+postgres=# SELECT * FROM dblink.connections ;
+  name   | server | status | use_xa | keep
+---------+--------+--------+--------+------
+ my_conn |  16594 | idle   | f      | t
+(1 行)
+
+postgres=# SELECT * FROM dblink.query('my_conn', 'SELECT * FROM tbl') AS t(c1 int, c2 text);
+ c1  |   c2
+-----+--------
+ 204 | remote
+ 403 | remote
+ 104 | remote
+ 203 | remote
+(4 行)
+
+</pre>
+<p>ただし、2相コミットが使われないため、接続先のDBサーバにまたがった更新処理を行うと、データの一貫性が失われる危険性があることに十分注意してください。
+</p>
+
 
 <h2 id="details">詳細</h2>
 <h3>全体構成</h3>
@@ -482,22 +559,25 @@ END;
 <h3>ビルド</h3>
 <p>pgxs を使ってビルドできます。</p>
 <pre>$ cd dblink_plus
-$ make USE_PGXS=1
-$ make USE_PGXS=1 install</pre>
+$ make 
+$ make install</pre>
 <p>
 デフォルトでは全てのコネクタがビルド対象となります。特定のコネクタを除外するにはコネクタフラグに0を指定します。
 <p>
 <pre>
-$ make MYSQL=0
-$ make MYSQL=0 install
+$ make MYSQL=0 SQLITE3=0
+$ make MYSQL=0 SQLITE3=0 install
 </pre>
 <p>
-コネクタフラグにはORACLE, MYSQL, SQLITE3があります。またコネクタとして PostgreSQL は除外することはできません。
+コネクタフラグには ORACLE, MYSQL, SQLITE3 があります。またコネクタとして PostgreSQL は除外することはできません。
 <p>
 
 <h3>データベースへの登録</h3>
 <p>dblink_plus を利用する場合には、対象のデータベースに対して $PGHOME/share/contrib/dblink_plus.sql を実行してください。</p>
 <pre>$ psql -d dbname -f $PGHOME/share/contrib/dblink_plus.sql</pre>
+
+さらに、接続先のDBサーバに応じて、外部データラッパ、外部サーバ、ユーザマッピングを作成する必要があります。
+<a href="#examples">使用例</a>を参照してください。
 
 <h3>データベースからの登録解除</h3>
 <p>dblink_plus が提供するコネクタを使用する全ての外部データラッパを削除下の後に、アンインストールスクリプトを実行してください。</p>
@@ -507,11 +587,11 @@ $ make MYSQL=0 install
 <h2 id="requirement">動作環境</h2>
 <dl>
 <dt>PostgreSQLバージョン</dt>
-<dd>PostgreSQL 8.4.7, 9.0.3</dd>
+<dd>PostgreSQL 8.4, 9.0, 9.1, 9.2, 9.3 </dd>
 <dt>Oracleバージョン</dt>
-<dd>Oracle10g</dd>
+<dd>Oracle10g, 11g, 12c</dd>
 <dt>OS</dt>
-<dd>RHEL 5.5</dd>
+<dd>RHEL 5/6</dd>
 </dl>
 
 <h2 id="seealso">関連項目</h2>
@@ -521,7 +601,7 @@ $ make MYSQL=0 install
 <a href="http://www.postgresql.jp/document/current/html/sql-createusermapping.html">CREATE USER MAPPING</a>
 
 <hr />
-<p class="footer">Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
+<p class="footer">Copyright (c) 2014, NIPPON TELEGRAPH AND TELEPHONE CORPORATION</p>
 
 </body>
 </html>
