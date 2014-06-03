@@ -18,10 +18,11 @@
 <div class="index">
 <ol>
 <li><a href="#name">名前</a></li>
-<li><a href="#synopsis">API</a></li>
+<li><a href="#synopsis">API一覧</a></li>
 <li><a href="#description">概要</a></li>
 <li><a href="#examples">使用例</a></li>
 <li><a href="#functions">関数</a></li>
+<li><a href="#parameters">設定パラメータ</a></li>
 <li><a href="#restrictions">使用上の注意と制約</a></li>
 <li><a href="#details">詳細</a></li>
 <li><a href="#install">インストール方法</a></li>
@@ -33,7 +34,7 @@
 <h2 id="name">名前</h2>
 <p>dblink_plus -- 外部データベース・サーバに接続し、SQLを実行します。</p>
 
-<h2 id="synopsis">API</h2>
+<h2 id="synopsis">API一覧</h2>
 <p>
 dblink.connect(server, use_xa DEFAULT true) : boolean<br>
 dblink.connect(name, server, use_xa DEFAULT true) : boolean<br>
@@ -64,7 +65,7 @@ dblink_plus は contrib/dblink と異なり、リモートのトランザクシ�
 
 <h3>自動トランザクション管理について</h3>
 <p>
-dblink_plus は自動トランザクション管理をサポートしています。これによりユーザーはローカルのトランザクションだけを意識すればよく、リモート側のトランザクションについて意識する必要がなくなります。
+dblink_plus は自動トランザクション管理をサポートしています。これによりユーザーはローカルのトランザクションだけを意識すればよく、リモート側のトランザクションについて意識しなくても、dblink_plus が自動で2相コミットを行ってくれます。
 </p>
 <pre>
 =# BEGIN;
@@ -73,12 +74,9 @@ dblink_plus は自動トランザクション管理をサポートしていま�
 =# COMMIT;  -- ローカルのコミットですが、リモートのOracleも自動的にコミットされます
 </pre>
 <p>
-自動トランザクションの有効／無効は、外部サーバーへの接続時に dblink.connect() の引数 use_xa として true/false で指定できます。use_xa は GUC パラメータとして、 postgresql.conf に設定できます。GUCパラメータとして設定した値は、外部サーバへの接続時にデフォルト値として使用され、接続時に明示的に指定した値が優先されます。
+自動トランザクション管理の有効／無効は接続毎に設定でき、 dblink.connect() の引数 use_xa として true/false で指定できます。
+また、use_xa は GUC パラメータとして、 postgresql.conf にも設定できます。この値は接続を指定せずに dblink.query(), dblink.exec() などを実行した際に使用されます。詳細は、<a href="#parameters">設定パラメータ</a>を参照ください。
 </p>
-<pre>
-custom_variable_classes = 'dblink_plus'     # PostgreSQL9.2以降ではこの項目は不要
-dblink_plus.use_xa = off                    # デフォルトは on (true)
-</pre>
 
 <h3>コネクタ・プラグインについて</h3>
 <p>
@@ -241,8 +239,14 @@ sqlite3用のコネクタです。ビルドおよび実行にはsqlite3ライブ
 <h3>dblink.connect(server, use_xa DEFAULT true) : boolean</h3>
 <p>
 外部サーバ 'server' に接続します。接続の名前は 'server' になります。
+</p>
+<p>
 use_xa が true の場合、自動トランザクション管理が有効になります。
-接続は、セッション終了時または dblink.disconnect() を呼ぶまで維持されます。
+use_xa を指定しなかった場合は、true として動作します。これは GUC パラメータで use_xa を off にしていても変わりません。
+use_xa を明示的に引数に指定した場合、GUC パラメータで指定した値を上書きして動作します。
+</p>
+
+<p>接続は、セッション終了時または dblink.disconnect() を呼ぶまで維持されます。</p>
 <dl>
 <dt>server</dt>
 <dd>外部サーバ名です。</dd>
@@ -440,6 +444,23 @@ Oracle に接続するための外部データラッパ検証関数です。
 それ以外は dblink.postgres() と同じです。
 </p>
 
+<h2 id="parameters">設定パラメータ</h2>
+<dl>
+<dt>dblink_plus.use_xa</dt>
+<dd>
+GUC パラメータとして設定した use_xa の値は、dblink.query() や dblink.exec() などを接続を指定せずに実行した場合に使用されます。
+dblink.connect() 時に use_xa を明示的に指定した場合はそちらの値が優先されます。
+特に、dblink.connect() において明示的に use_xa を指定しなかった場合は GUC で設定した値は使用されず、 自動トランザクション有効で接続が開始されます。
+</dd>
+
+<p>このパラメータは postgresql.conf に設定します。</p>
+<pre>
+custom_variable_classes = 'dblink_plus'     # PostgreSQL9.2以降ではこの項目は不要
+dblink_plus.use_xa = off                    # 記載しなかった場合は on (true)として動作する
+</pre>
+<p>なお、shared_preloaded_librariesへの登録は必要ありません。
+</p>
+
 <h2 id="restrictions">使用上の注意と制約</h2>
 <p>dblink_plus を使用する際には、以下の使用上の注意と制約があります。</p>
 
@@ -454,8 +475,8 @@ Oracle に接続するための外部データラッパ検証関数です。
 <p>Oracleコネクタの外部サーバ定義や dblink.query()、dblink.open()、dblink.call()関数において 'max_value_len' の列データ長を指定した場合、フェッチ用のバッファとして消費されるメモリ量は、おおよそ「(max_value_len+1) × 列数 × フェッチ行数」となります。</p>
 <p>また、処理を中断するとメモリの解放が完全に行われないため、メモリリークの原因になるので、注意してください。</p>
 
-<h3>PostgreSQLでは2相コミットを有効にする</h3>
-<p>PostgreSQLコネクタを使って接続する場合、2相コミットを有効にするため、リモートデータベースのGUCパラメータ max_prepared_transactions を1以上に設定してください。</p>
+<h3>PostgreSQLの設定</h3>
+<p>PostgreSQLコネクタを使って接続する場合、自動トランザクション管理による2相コミットを有効にするため、リモートデータベースのGUCパラメータ max_prepared_transactions を1以上に設定してください。</p>
 
 <h3>ユーザに必要なオブジェクト権限</h3>
 dblink_plus を使用する非スーパーユーザには、以下の3種類の権限を付与してください。
@@ -476,20 +497,20 @@ dblink_plus を使用する非スーパーユーザには、以下の3種類の�
 <h3>log_statement の設定</h3>
 dblink_plus は、SELECT 文で実行されるため、ローカルのGUCパラメータ log_statement を mod に設定して更新系SQLを実行してもログには残りません。そのため、dblink_plus を使用したログを残すためには、ローカル側の log_statement を all に設定してください。
 
-<h3>dblink_plus を使用する環境</h3>
-<p>自動トランザクション有効の場合、内部で DELETE トリガを使用します。そのため、レプリケーション構成でのスタンバイサーバや、ホットスタンバイサーバ等の読み取り専用の環境では、自動トランザクション有効の処理ができないので、注意してください。
+<h3>ホットスタンバイサーバでのdblink_plus</h3>
+<p>自動トランザクション管理が有効の場合、接続先の DB サーバとの間で2相コミットを行うために内部で DELETE トリガを使用します。そのため、レプリケーション構成でのレプリカ側サーバやホットスタンバイサーバ等の参照専用のDBでは、自動トランザクション管理を有効にして動作させることができません。
 実行しようとした場合、以下のエラーが発生します。
 </p>
-
 <pre>
 postgres=# SELECT * FROM dblink.query('server_oracle', 'SELECT * FROM tbl') AS t(c1 int, c2 text);
 ERROR:  cannot execute DELETE in a read-only transaction
 CONTEXT:  SQL statement "DELETE FROM dblink.atcommit"
 </pre>
 
-<p>これらのサーバでdblink_plusを使用する場合、2総コミットを無効にして外部サーバに接続する必要があります。
+<p>これらのサーバで dblink_plus を使用する場合、自動トランザクション管理を無効にして外部サーバに接続する必要があります。
 use_xa を false にした接続を作成して使用するか、postgresql.conf にて use_xa を off に設定してください。</p>
 以下は、use_xa を false にした接続を明示的に作成する例です。
+</p>
 <pre>
 postgres=# SELECT dblink.connect('my_conn', 'server_oracle', false);
  connect
@@ -511,9 +532,12 @@ postgres=# SELECT * FROM dblink.query('my_conn', 'SELECT * FROM tbl') AS t(c1 in
  104 | remote
  203 | remote
 (4 行)
-
 </pre>
-<p>ただし、2相コミットが使われないため、接続先のDBサーバにまたがった更新処理を行うと、データの一貫性が失われる危険性があることに十分注意してください。
+<p>
+postgresql.conf に use_xa を off で設定した場合、明示的に use_xa を false で開いた接続を用意しなくても各 API が実行できるようになります。ただし、 use_xa を引数として指定せずに dblink.connect() を実行すると、その接続は use_xa が true になります。API 実行時に接続を指定する場合は上記の様に use_xa を false として明示的に指定した接続を使用してください。
+</p>
+
+<p>なお、自動トランザクション管理を無効にすることで dblink_plus は接続先のDBサーバとの間で2相コミットを行わなくなるため、DBサーバ間でデータの一貫性を保たれるようにクライアント側で考慮する必要があります。
 </p>
 
 
@@ -576,13 +600,19 @@ $ make MYSQL=0 SQLITE3=0 install
 <p>dblink_plus を利用する場合には、対象のデータベースに対して $PGHOME/share/contrib/dblink_plus.sql を実行してください。</p>
 <pre>$ psql -d dbname -f $PGHOME/share/contrib/dblink_plus.sql</pre>
 
-さらに、接続先のDBサーバに応じて、外部データラッパ、外部サーバ、ユーザマッピングを作成する必要があります。
+<p>PostgreSQL 9.1以降であれば、上記の代わりに CREATE EXTENSION コマンドでも登録可能です。</p>
+<pre>postgres=# CREATE EXTENSION dblink_plus;</pre> 
+
+なお、dblink_plus を使って外部サーバへのアクセスを行うためには、ここからさらに接続先のDBサーバに応じて、外部データラッパ、外部サーバ、ユーザマッピングを作成する必要があります。
 <a href="#examples">使用例</a>を参照してください。
 
 <h3>データベースからの登録解除</h3>
 <p>dblink_plus が提供するコネクタを使用する全ての外部データラッパを削除下の後に、アンインストールスクリプトを実行してください。</p>
 <pre>$ psql -d dbname -f $PGHOME/share/contrib/uninstall_dblink_plus.sql</pre>
 
+<p>PostgreSQL 9.1以降であれば、上記の代わりに DROP EXTENSION コマンドでも削除可能です。</p>
+<pre>postgres=# DROP EXTENSION dblink_plus CASCADE;</pre>
+<p>dblink_plus のために作成した外部サーバなどを削除していない場合は、DROP EXTENSION と同時に削除するように CASCADE 句を付ける必要があります。</p>
 
 <h2 id="requirement">動作環境</h2>
 <dl>
