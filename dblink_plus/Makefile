@@ -1,10 +1,20 @@
+#
+# dblink_plus: Makefile
+#
+#    Copyright (c) 2011-2014, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+#
 MODULE_big = dblink_plus
-DATA_built = dblink_plus.sql
+DATA_built = dblink_plus.sql dblink_plus--1.0.1.sql
 DATA = uninstall_dblink_plus.sql
 OBJS = dblink.o dblink_postgres.o
+
+EXTENSION = dblink_plus
+
 REGRESS = init postgres
 PG_CPPFLAGS = -I$(libpq_srcdir)
 SHLIB_LINK = $(libpq)
+
+EXTRA_CLEAN = gmon.out
 
 ifneq ($(MYSQL),0)
 OBJS += dblink_mysql.o
@@ -39,3 +49,6 @@ else
 SHLIB_LINK += -L$(ORACLE_HOME)/lib -lclntsh
 endif
 endif
+
+dblink_plus--1.0.1.sql:
+	head -n -2 dblink_plus.sql.in | tail -n +4 > dblink_plus--1.0.1.sql
