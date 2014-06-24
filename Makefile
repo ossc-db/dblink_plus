@@ -52,3 +52,6 @@ endif
 
 dblink_plus--1.0.1.sql:
 	head -n -2 dblink_plus.sql.in | tail -n +4 > dblink_plus--1.0.1.sql
+
+standbycheck: all
+	$(pg_regress_installcheck) --schedule=standby_schedule --use-existing --dbname=contrib_regression --port=$(PGPORT)
