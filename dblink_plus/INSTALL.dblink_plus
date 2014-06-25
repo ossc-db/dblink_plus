@@ -1,0 +1,178 @@
+Pre-requisite
+============
+PostgreSQL installation is mandatory for dblink_plus module.
+This package requires PostgreSQL 8.4 or later.
+
+Other administration tools that use this module may have different 
+requirements. Please consult the tool's documentation for further details
+at: [http://interdbconnect.sourceforge.net/dblink_plus/dblink_plus-ja.html]
+
+
+Installation
+===========
+This module is normally distributed as a PostgreSQL 'contrib' module. 
+In order to install it from a pre-configured source tree or without 
+source tree using PGXS, run the following commands as a user with 
+appropriate privileges from the dblink_plus source directory:
+
+  $ make [ORACLE=0] [MYSQL=0] [SQLITE3=0]
+  # make [ORACLE=0] [MYSQL=0] [SQLITE3=0] install
+    options:
+       - ORACLE : skip installation for remote Oracle server if it is set to 0,
+       - MYSQL : skip installation for remote MySQL server if it is set to 0,
+       - SQLITE3 : skip installation for remote SQLite server if it is set to 0.
+
+If user do not want to use dblink_plus for Oracle, MySQL or sqlite3, 
+setting above flags to zero avoids dblibk_plus installation for specified 
+database connectivity.
+
+
+Registration to databases
+========================
+To install dblink_plus functions in the database, run the dblink_plus.sql like,
+
+  $ psql -d postgres -U postgres -f $PGHOME/share/extension/dblink_plus.sql
+
+
+    [NOTE]
+    If $PGHOME does not contains "pgsql" or "postgresql"as directory names, 
+    PostgreSQL explicitly adds "postgresql" as directory just before $PGHOME/share.
+    So above commands becomes:
+        $ psql -d postgres -U postgres -f $PGHOME/share/postgresql/extension/dblink_plus.sql
+
+It also can be done by CREATE EXTENSION for PostgreSQL 9.1 and after.
+  $ psql -d postgres -U postgres
+  postgres=> CREATE EXTENSION dblink_plus;
+
+Configuration for remote server
+===================
+In order to connect to remote server by dblink_plus, users have to create several 
+objects in local PostgreSQL server.
+
+    - foreign data wrapper which uses dblink_plus connectors as validator
+    - foreign server which uses the above foreign data wrapper
+    - mapping between local database user and remote database user 
+
+Here shows examples of configuration for remote PostgreSQL and remote Oracle.
+Users have to modify parameters as per their environment.
+
+**** Configure dblink_plus for remote PostgreSQL server ****
+
+1. Set up remote PostgreSQL server and add contents to following files as below:
+
+  $ vim $PGDATA/postgresql.conf
+---
+# zero disables the feature (change requires restart)
+max_prepared_transactions = 1
+# dblink_plus GUC parameter
+dblink_plus.use_xa = true
+---
+
+  $ vim $PGDATA/pg_hba.conf
+---
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+# IPv4 local connections:
+host    all             all             192.168.56.101/32            trust
+#ADDRESS is the IP address of your local PostgreSQL server on which dblink_plus is running.
+---
+
+2. Create user and table in the remote database:
+
+  $ psql -d postgres
+  postgres=# create user test with password 'test123';
+  postgres=# alter user test with login;
+
+  $ psql -d postgres -U test
+  postgres=> create table t1(id integer);
+  postgres=> insert into t1 values(1);
+  postgres=> insert into t1 values(2);
+
+3. Install dblink_plus into your local PostgreSQL and create objects for remote PostgreSQL:
+
+  $ psql -d postgres -U postgres
+  postgres=# CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;
+  postgres=# CREATE SERVER pg_server FOREIGN DATA WRAPPER postgres OPTIONS (host '192.168.56.102', port '5432', dbname 'postgres');
+  postgres=# CREATE USER MAPPING FOR postgres SERVER pg_server OPTIONS (user 'test' password 'test123');
+
+4. Now you can access from local PostgreSQL to remote PostgreSQL by dblink functions.
+
+  postgres=# SELECT * FROM dblink.query ('pg_server', 'select id from t1') as t1(c1 int);
+
+****************************************
+
+**** Configure dblink_plus for remote Oracle server ****
+
+1. Install Oracle Client and configure at local server
+
+Download and install Instant Oracle client source or rpm from:
+[http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html]
+Follow oracle documentation for Oracle client installation.
+
+Set environmental variables for OS user who start PostgreSQL like:
+
+  export ORACLE_HOME=/usr/lib/oracle/11.2/client64
+  export LD_LIBRARY_PATH=/usr/lib/oracle/11.2/client64/lib:$LD_LIBRARY_PATH
+  export TNS_ADMIN=$ORACLE_HOME/network/admin/
+
+Please modify the path for your environment.
+
+In addition, users may update shared libralies setting like below:
+
+  $ su -
+  # vim /etc/ld.so.conf
+---
+/usr/lib/oracle/11.2/client64/lib
+---
+
+  # ldconfig
+  # exit
+
+
+2. Create a user and a sample table on remote Oracle side
+
+
+  # sqlplus sys as sysdba
+  (Enter password which you have set for sys user at the time Oracle installation.)
+
+  SQL> CREATE USER test IDENTIFIED by test123;
+  SQL> ALTER USER test default tablespace SYSTEM;
+  SQL> GRANT CONNECT, CREATE session, CREATE table, CREATE view, CREATE procedure,CREATE synonym to test;
+  SQL> ALTER USER test quota 100M on SYSTEM;
+  SQL> quit
+
+  # sqlplus test/test123
+  SQL> create table t1(id integer);
+  SQL> insert into t1 values(1);
+  SQL> /
+
+3. Create tnsnames.ora file on local server
+
+  # su root
+  # mkdir -p /usr/lib/oracle/11.2/client64/network/admin/
+  # vim /usr/lib/oracle/11.2/client64/network/admin/tnsnames.ora
+---
+XE =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = 172.26.126.62)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = XE)
+    )
+  )
+---
+
+In this file (HOST = 172.26.126.62)(PORT = 1521) HOST is IP address of
+remote Oracle server and PORT is port number on which Oracle server is running.
+"XE" is the Oracle service name. 
+Check tnsnames.ora file on the remote Oracle server to know service name.
+
+4. Install dblink_plus into your local database
+
+  $ psql -d postgres -U postgres
+  postgres=# CREATE FOREIGN DATA WRAPPER oracle VALIDATOR dblink.oracle;
+  postgres=# CREATE SERVER ora_server FOREIGN DATA WRAPPER oracle OPTIONS (dbname 'ORCL');
+  postgres=# CREATE USER MAPPING FOR postgres SERVER ora_server OPTIONS (user 'test', password 'test123');
+
+5. Now you can access from local PostgreSQL to remote Oracle by dblink functions.
+
+  postgres=# SELECT * FROM dblink.query ('ora_server', 'select id from t1') as t1(c1 int);

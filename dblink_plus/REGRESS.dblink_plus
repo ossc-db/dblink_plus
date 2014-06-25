@@ -1,0 +1,55 @@
+Setting for regression tests
+===========================
+
+To run regression tests, users have to set up PostgreSQL server and remote server.
+If users want to do stanbycheck, it is also required to configure replication
+set up with master and standby PostgreSQL servers. Follow the documentation 
+to set up streaming replication.
+https://wiki.postgresql.org/wiki/Streaming_Replication
+
+Before running regression tests, update environment settings in regress.conf
+and then execute regression tests.
+
+  $ vim regress.conf
+---
+#PostgreSQL server configuration settings for regression test--
+PG_USER='postgres' (PostgreSQL user name for regression)
+
+#Oracle server configuration settings for regression test--
+OR_DBNM='dbt' (Oracle service/database name)
+OR_USER='scott' (Oracle user name)
+OR_PASS='tiger' (Oracle user password)
+---
+
+Above file is used when 'make installcheck' command is executed.
+This commands internally execute regress_init.sh which modifies
+regression scripts from regress.conf.
+
+
+Regression tests against remote servers
+======================================
+
+To do regression tests of dblink_plus, just run make installcheck like below.
+
+  $ make [ORACLE=0] [MYSQL=0] [SQLITE3=0] installcheck
+    options:
+       - ORACLE : skip the regression tests for remote Oracle server if it is set to 0,
+       - MYSQL : skip the regression tests for remote MySQL server if it is set to 0,
+       - SQLITE3 : skip the regression tests for remote SQLite server if it is set to 0.
+
+Above installcheck command executes regression scripts on local PostgreSQL server
+and throws dblink_plus queries on remote PostgreSQL, Oracle, MySQL, sqlite3 servers if specified.
+
+Regression tests against local standby PostgreSQL server
+=======================================================
+
+There are additional tests with local standby PostgreSQL server to remote servers.
+
+  $ make PGPORT=standby_server_port_number standbycheck
+
+It helps to run read only queries on remote server through dblink_plus on standby server. 
+User need to provide standby server port number to connect with local standby server.
+
+This regression test is introduced to test feature "use_xa parameter as GUC parameter"
+so that users can configure this parameter from postgresql.conf or using set command in 
+local PostgreSQL.
