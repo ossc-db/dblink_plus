@@ -29,6 +29,7 @@ REGRESS += oracle
 PG_CPPFLAGS += -DENABLE_ORACLE
 PG_CPPFLAGS += -I$(ORACLE_HOME)/oci/include/	# win32
 PG_CPPFLAGS += -I$(ORACLE_HOME)/rdbms/public	# linux
+PG_CPPFLAGS += -I$(ORACLE_INCLUDE)/				# linux with oracle client only
 endif
 
 ifneq ($(SQLITE3),0)
