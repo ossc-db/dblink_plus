@@ -1,7 +1,7 @@
 /*
  * dblink.h
  *
- * Copyright (c) 2011, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2015, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #ifndef DBLINK_H
 #define DBLINK_H

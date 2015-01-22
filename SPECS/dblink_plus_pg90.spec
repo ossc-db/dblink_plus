@@ -1,5 +1,5 @@
 # SPEC file for dblink_plus
-# Copyright(C) 2011 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+# Copyright(C) 2015 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
 %define _pgdir   /usr/pgsql-9.0
 %define _bindir  %{_pgdir}/bin
