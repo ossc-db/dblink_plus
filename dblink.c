@@ -139,7 +139,7 @@ static int32	next_cursor_id = 0;
 #define INVALID_CURSOR		0
 
 /* This variable is use by a custom GUC parameter dblink_plus.use_xa. 
- * This parameter is true as default in order to maintain the preveious behavior.*/
+ * This parameter is true as default in order to maintain the previous behavior.*/
 bool use_xa;
 
 /*
@@ -715,7 +715,7 @@ getServerByName(const char *name)
 static void
 RegisterCommitCallback(void)
 {
-	/* this DELETE is only for registering twophase trigger. */
+	/* this DELETE is only for registering two-phase trigger. */
 	SPI_connect();
 	SPI_exec("DELETE FROM dblink.atcommit", 1);
 	SPI_finish();
