@@ -1,7 +1,7 @@
 /*
  * dblink_postgres.c
  *
- * Copyright (c) 2011-2015, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2017, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #include "postgres.h"
 
