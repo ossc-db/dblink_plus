@@ -1,7 +1,7 @@
 /*
  * dblink_oracle.c
  *
- * Copyright (c) 2011-2017, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2019, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #ifdef ENABLE_ORACLE
 
@@ -885,7 +885,7 @@ static void *oralink_malloc(size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopMemoryContext);
 	p = palloc(size);
 	MemoryContextSwitchTo(old_context);
 	return p;
@@ -896,7 +896,7 @@ static void *oralink_calloc(size_t nmemb, size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopMemoryContext);
 	p = palloc0(nmemb * size);
 	MemoryContextSwitchTo(old_context);
 	return p;
@@ -907,7 +907,7 @@ static void *oralink_realloc(void *ptr, size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopMemoryContext);
 	p = repalloc(ptr, size);
 	MemoryContextSwitchTo(old_context);
 	return p;
