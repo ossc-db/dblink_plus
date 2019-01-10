@@ -1,7 +1,7 @@
 /*
  * dblink_postgres.c
  *
- * Copyright (c) 2011-2017, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2019, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #include "postgres.h"
 
@@ -11,6 +11,7 @@
 #include "nodes/parsenodes.h"
 #include "libpq-fe.h"
 #include "utils/memutils.h"
+#include "fe_utils/connect.h"
 
 extern Datum postgresql_fdw_validator(PG_FUNCTION_ARGS);
 
@@ -113,6 +114,8 @@ dblink_postgres(PG_FUNCTION_ARGS)
 {
 	dblink_connection **connection;
 	PGconn			   *conn;
+	PGresult 		   *res;
+	ExecStatusType 		code;
 
 	if (PG_GETARG_OID(1) != DBLINKOID)
 		return postgresql_fdw_validator(fcinfo);
@@ -133,6 +136,14 @@ dblink_postgres(PG_FUNCTION_ARGS)
 			errmsg("could not establish connection"),
 			errdetail("%s", detail)));
 	}
+
+	res = PQexec(conn, ALWAYS_SECURE_SEARCH_PATH_SQL);
+	code = PQresultStatus(res);
+	if (code != PGRES_COMMAND_OK && code != PGRES_TUPLES_OK)
+	{
+		elog(ERROR, "dblink_plus: could not clear search_path: %s", PQerrorMessage(conn));
+		pglink_error(conn, res);
+	}	
 
 	PQsetClientEncoding(conn, GetDatabaseEncodingName());
 
