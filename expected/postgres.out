@@ -2,22 +2,22 @@ CREATE FOREIGN DATA WRAPPER postgres VALIDATOR dblink.postgres;
 CREATE SERVER server_postgres6789012345678901234567890123456789012345678901234567890 FOREIGN DATA WRAPPER postgres OPTIONS (dbname 'contrib_regression');
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
 CREATE USER MAPPING FOR CURRENT_USER SERVER server_postgres678901234567890123456789012345678901234567890123 OPTIONS (user 'postgres');
-CREATE TABLE dblink_tbl (id integer, value text);
-INSERT INTO dblink_tbl VALUES(1, 'X');
-INSERT INTO dblink_tbl VALUES(2, 'BB');
-INSERT INTO dblink_tbl VALUES(3, 'CCC');
-INSERT INTO dblink_tbl VALUES(4, 'DDDD');
-INSERT INTO dblink_tbl VALUES(5, NULL);
-CREATE TABLE dblink_tmp (LIKE dblink_tbl);
+CREATE TABLE dblink.dblink_tbl (id integer, value text);
+INSERT INTO dblink.dblink_tbl VALUES(1, 'X');
+INSERT INTO dblink.dblink_tbl VALUES(2, 'BB');
+INSERT INTO dblink.dblink_tbl VALUES(3, 'CCC');
+INSERT INTO dblink.dblink_tbl VALUES(4, 'DDDD');
+INSERT INTO dblink.dblink_tbl VALUES(5, NULL);
+CREATE TABLE dblink.dblink_tmp (LIKE dblink.dblink_tbl);
 CREATE FUNCTION dblink.cursor_test(cursor integer, howmany integer)
-RETURNS SETOF dblink_tmp AS
+RETURNS SETOF dblink.dblink_tmp AS
 $$
-TRUNCATE dblink_tmp;
-INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
-INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
-INSERT INTO dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+TRUNCATE dblink.dblink_tmp;
+INSERT INTO dblink.dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink.dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink.dblink_tmp SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
 SELECT dblink.close($1);
-SELECT * FROM dblink_tmp;
+SELECT * FROM dblink.dblink_tmp;
 $$
 LANGUAGE sql;
 -- dblink.connect()
@@ -40,7 +40,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 (1 row)
 
 -- dblink.exec() with an existing connection
-SELECT * FROM dblink_tbl ORDER BY id;
+SELECT * FROM dblink.dblink_tbl ORDER BY id;
  id | value 
 ----+-------
   1 | X
@@ -51,7 +51,7 @@ SELECT * FROM dblink_tbl ORDER BY id;
 (5 rows)
 
 BEGIN;
-SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'UPDATE dblink.dblink_tbl SET value = ''A'' WHERE id = 1');
  exec 
 ------
     1
@@ -64,7 +64,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 (1 row)
 
 ROLLBACK;
-SELECT * FROM dblink_tbl ORDER BY id;
+SELECT * FROM dblink.dblink_tbl ORDER BY id;
  id | value 
 ----+-------
   1 | X
@@ -75,7 +75,7 @@ SELECT * FROM dblink_tbl ORDER BY id;
 (5 rows)
 
 BEGIN;
-SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'UPDATE dblink_tbl SET value = ''A'' WHERE id = 1');
+SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'UPDATE dblink.dblink_tbl SET value = ''A'' WHERE id = 1');
  exec 
 ------
     1
@@ -88,7 +88,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 (1 row)
 
 COMMIT;
-SELECT * FROM dblink_tbl ORDER BY id;
+SELECT * FROM dblink.dblink_tbl ORDER BY id;
  id | value 
 ----+-------
   1 | A
@@ -100,7 +100,7 @@ SELECT * FROM dblink_tbl ORDER BY id;
 
 -- dblink.query() with an existing connection
 BEGIN;
-SELECT * FROM dblink.query('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+SELECT * FROM dblink.query('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
  id | value 
 ----+-------
   1 | A
@@ -118,7 +118,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 
 COMMIT;
 -- dblink.open() with an existing connection
-SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 100);
  id | value 
 ----+-------
   1 | A
@@ -128,7 +128,7 @@ SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234
   5 | 
 (5 rows)
 
-SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 2);
  id | value 
 ----+-------
   1 | A
@@ -138,7 +138,7 @@ SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234
   5 | 
 (5 rows)
 
-SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+SELECT * FROM dblink.cursor_test(dblink.open('conn_postgres456789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 1);
  id | value 
 ----+-------
   1 | A
@@ -166,7 +166,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 
 -- dblink.query() with an anonymous connection
 BEGIN;
-SELECT * FROM dblink.query('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
+SELECT * FROM dblink.query('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id') AS t(id integer, value text) ORDER BY id;
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -191,7 +191,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 
 -- dblink.exec() with an anonymous connection
 BEGIN;
-SELECT dblink.exec('server_postgres6789012345678901234567890123456789012345678901234567890', 'UPDATE dblink_tbl SET value = value WHERE id < 3');
+SELECT dblink.exec('server_postgres6789012345678901234567890123456789012345678901234567890', 'UPDATE dblink.dblink_tbl SET value = value WHERE id < 3');
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  exec 
 ------
@@ -211,7 +211,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 (0 rows)
 
 -- dblink.open() with an anonymous connection
-SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 100);
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 100);
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -222,7 +222,7 @@ NOTICE:  identifier "server_postgres67890123456789012345678901234567890123456789
   5 | 
 (5 rows)
 
-SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 2);
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 2);
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -233,7 +233,7 @@ NOTICE:  identifier "server_postgres67890123456789012345678901234567890123456789
   5 | 
 (5 rows)
 
-SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id'), 1);
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id'), 1);
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -248,7 +248,7 @@ SELECT name, srvname, status, keep FROM dblink.connections, pg_foreign_server WH
 (0 rows)
 
 -- dblink.query() with max_value_len option
-SELECT * FROM dblink.query('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id', 0, 1) AS t(id integer, value text) ORDER BY id;
+SELECT * FROM dblink.query('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id', 0, 1) AS t(id integer, value text) ORDER BY id;
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -260,7 +260,7 @@ NOTICE:  identifier "server_postgres67890123456789012345678901234567890123456789
 (5 rows)
 
 -- dblink.open() with max_value_len option
-SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink_tbl ORDER BY id', 100, 1), 100);
+SELECT * FROM dblink.cursor_test(dblink.open('server_postgres6789012345678901234567890123456789012345678901234567890', 'SELECT * FROM dblink.dblink_tbl ORDER BY id', 100, 1), 100);
 NOTICE:  identifier "server_postgres6789012345678901234567890123456789012345678901234567890" will be truncated to "server_postgres678901234567890123456789012345678901234567890123"
  id | value 
 ----+-------
@@ -279,7 +279,7 @@ NOTICE:  identifier "conn_postgres4567890123456789012345678901234567890123456789
  t
 (1 row)
 
-SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'VACUUM dblink_tbl');
+SELECT dblink.exec('conn_postgres456789012345678901234567890123456789012345678901234567890', 'VACUUM dblink.dblink_tbl');
  exec 
 ------
     0
