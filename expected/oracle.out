@@ -59,15 +59,15 @@ SELECT dblink.exec('server_oracle', 'INSERT INTO dblink_tbl VALUES(5, NULL)');
     1
 (1 row)
 
-CREATE TABLE dblink_tmp_ora (LIKE dblink_tbl);
+CREATE TABLE dblink.dblink_tmp_ora (LIKE dblink.dblink_tbl);
 CREATE FUNCTION dblink.cursor_test_ora(cursor integer, howmany integer)
-RETURNS SETOF dblink_tmp_ora AS
+RETURNS SETOF dblink.dblink_tmp_ora AS
 $$
-TRUNCATE dblink_tmp_ora;
-INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
-INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
-INSERT INTO dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
-SELECT * FROM dblink_tmp_ora;
+TRUNCATE dblink.dblink_tmp_ora;
+INSERT INTO dblink.dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink.dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+INSERT INTO dblink.dblink_tmp_ora SELECT * FROM dblink.fetch($1, $2) AS t(id integer, value text);
+SELECT * FROM dblink.dblink_tmp_ora;
 $$
 LANGUAGE sql;
 -- dblink.connect()
