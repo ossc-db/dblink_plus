@@ -34,11 +34,11 @@ Note that this package is available for only PostgreSQL 11.
 
 %package llvmjit
 Requires: postgresql11-server, postgresql11-llvmjit
-Requires: dblink_plus_pg11 = 1.0.3
-Summary:  Just-in-time compilation support for dblink_plus_pg11
+Requires: dblink_plus = 1.0.3
+Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus_pg11
+Just-in-time compilation support for dblink_plus 1.0.3
 
 ## prework
 %prep
