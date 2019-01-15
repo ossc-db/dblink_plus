@@ -1,10 +1,11 @@
 # SPEC file for dblink_plus
 # Copyright(C) 2019 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
-%define _pgdir   /usr/pgsql-10
+%define _pgdir   /usr/pgsql-11
 %define _bindir  %{_pgdir}/bin
 %define _libdir  %{_pgdir}/lib
 %define _datadir %{_pgdir}/share/extension
+%define _bcdir %{_libdir}/bitcode/dblink_plus
 
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
@@ -21,13 +22,23 @@ Vendor:     NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 AutoReqProv: no
 
 ## We use postgresql-devel package
-BuildRequires:  postgresql10-devel
-Requires:  postgresql10-libs
+BuildRequires:  postgresql11-devel
+Requires:  postgresql11-libs
 
 ## Description
 %description
 dblink_plus is a PostgreSQL module which supports connections to other databases.
 It is similar to contrib/dblink except that it can connect to Oracle, MySQL and sqlite3. 
+
+Note that this package is available for only PostgreSQL 11.
+
+%package llvmjit
+Requires: postgresql11-server, postgresql11-llvmjit
+Requires: dblink_plus_pg11 = 1.0.3
+Summary:  Just-in-time compilation support for dblink_plus_pg11
+
+%description llvmjit
+Just-in-time compilation support for dblink_plus_pg11
 
 ## prework
 %prep
@@ -49,7 +60,9 @@ install -m 755 dblink_plus--1.0.3.sql %{buildroot}%{_datadir}/dblink_plus--1.0.3
 install -m 755 dblink_plus.control %{buildroot}%{_datadir}/dblink_plus.control
 install -m 755 uninstall_dblink_plus.sql %{buildroot}%{_datadir}/uninstall_dblink_plus.sql
 install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
-
+install -d %{buildroot}%{_bcdir}
+install -m 644 dblink.bc %{buildroot}%{_bcdir}/dblink.bc
+install -m 644 dblink_postgres.bc %{buildroot}%{_bcdir}/dblink_postgres.bc
 
 %clean
 rm -rf %{buildroot}
@@ -63,7 +76,15 @@ rm -rf %{buildroot}
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
 
+%files llvmjit
+%defattr(0755,root,root)
+%{_bcdir}
+%defattr(0644,root,root)
+%{_bcdir}/dblink.bc
+%defattr(0644,root,root)
+%{_bcdir}/dblink_postgres.bc
+
 # History.
 %changelog
 * Thu Jan 10 2019 - NTT OSS Center <tatsuro.yamada@lab.ntt.co.jp> 1.0.3-1
-initial packaging
+Support PG11.
