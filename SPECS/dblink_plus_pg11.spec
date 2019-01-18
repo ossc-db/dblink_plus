@@ -6,6 +6,7 @@
 %define _libdir  %{_pgdir}/lib
 %define _datadir %{_pgdir}/share/extension
 %define _bcdir %{_libdir}/bitcode/dblink_plus
+%define _bc_ind_dir %{_libdir}/bitcode
 
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
@@ -63,9 +64,10 @@ install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
 install -d %{buildroot}%{_bcdir}
 install -m 644 dblink.bc %{buildroot}%{_bcdir}/dblink.bc
 install -m 644 dblink_postgres.bc %{buildroot}%{_bcdir}/dblink_postgres.bc
+install -m 644 dblink_plus.index.bc %{buildroot}%{_bc_ind_dir}/dblink_plus.index.bc
 
 %clean
-rm -rf %{buildroot}
+#rm -rf %{buildroot}
 
 %files
 %defattr(755,root,root)
@@ -83,6 +85,8 @@ rm -rf %{buildroot}
 %{_bcdir}/dblink.bc
 %defattr(0644,root,root)
 %{_bcdir}/dblink_postgres.bc
+%defattr(0644,root,root)
+%{_bc_ind_dir}/dblink_plus.index.bc
 
 # History.
 %changelog
