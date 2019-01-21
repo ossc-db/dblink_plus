@@ -64,10 +64,11 @@ install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
 install -d %{buildroot}%{_bcdir}
 install -m 644 dblink.bc %{buildroot}%{_bcdir}/dblink.bc
 install -m 644 dblink_postgres.bc %{buildroot}%{_bcdir}/dblink_postgres.bc
+install -m 644 dblink_oracle.bc %{buildroot}%{_bcdir}/dblink_oracle.bc
 install -m 644 dblink_plus.index.bc %{buildroot}%{_bc_ind_dir}/dblink_plus.index.bc
 
 %clean
-#rm -rf %{buildroot}
+rm -rf %{buildroot}
 
 %files
 %defattr(755,root,root)
@@ -85,6 +86,8 @@ install -m 644 dblink_plus.index.bc %{buildroot}%{_bc_ind_dir}/dblink_plus.index
 %{_bcdir}/dblink.bc
 %defattr(0644,root,root)
 %{_bcdir}/dblink_postgres.bc
+%defattr(0644,root,root)
+%{_bcdir}/dblink_oracle.bc
 %defattr(0644,root,root)
 %{_bc_ind_dir}/dblink_plus.index.bc
 
