@@ -67,7 +67,7 @@ install -m 644 dblink_postgres.bc %{buildroot}%{_bcdir}/dblink_postgres.bc
 install -m 644 dblink_plus.index.bc %{buildroot}%{_bc_ind_dir}/dblink_plus.index.bc
 
 %clean
-#rm -rf %{buildroot}
+rm -rf %{buildroot}
 
 %files
 %defattr(755,root,root)
