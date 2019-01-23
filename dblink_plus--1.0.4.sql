@@ -1,0 +1,88 @@
+
+----------------------------------------------------------------------------
+-- dblink
+----------------------------------------------------------------------------
+
+CREATE SCHEMA dblink;
+
+CREATE DOMAIN dblink.cursor integer;
+
+CREATE FUNCTION dblink.connect(
+	server text,
+	use_xa boolean DEFAULT true)
+RETURNS boolean AS
+'MODULE_PATHNAME', 'dblink_connect' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.connect(
+	name text,
+	server text,
+	use_xa boolean DEFAULT true)
+RETURNS boolean AS
+'MODULE_PATHNAME', 'dblink_connect_name' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.disconnect(name text)
+RETURNS boolean AS
+'MODULE_PATHNAME', 'dblink_disconnect' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.query(name text, sql text, fetchsize integer DEFAULT 0, max_value_len integer DEFAULT -1)
+RETURNS SETOF record AS
+'MODULE_PATHNAME', 'dblink_query' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.exec(name text, sql text)
+RETURNS bigint AS
+'MODULE_PATHNAME', 'dblink_exec' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.open(name text, sql text, fetchsize integer DEFAULT 100, max_value_len integer DEFAULT -1)
+RETURNS dblink.cursor AS
+'MODULE_PATHNAME', 'dblink_open' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.fetch(dblink.cursor, howmany integer DEFAULT 1)
+RETURNS SETOF record AS
+'MODULE_PATHNAME', 'dblink_fetch' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.close(dblink.cursor)
+RETURNS boolean AS
+'MODULE_PATHNAME', 'dblink_close' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.call(name text, sql text, fetchsize integer DEFAULT 0, max_value_len integer DEFAULT -1)
+RETURNS SETOF record AS
+'MODULE_PATHNAME', 'dblink_call' LANGUAGE C STRICT;
+
+CREATE FUNCTION dblink.connections(
+	OUT name text,
+	OUT server oid,
+	OUT status text,
+	OUT use_xa boolean,
+	OUT keep boolean)
+RETURNS SETOF record AS
+'MODULE_PATHNAME', 'dblink_connections' LANGUAGE C STRICT;
+
+CREATE VIEW dblink.connections AS SELECT * FROM dblink.connections();
+
+---- dblink: internals ----
+
+CREATE FUNCTION dblink.atcommit() RETURNS trigger
+AS 'MODULE_PATHNAME', 'dblink_atcommit' LANGUAGE C;
+
+CREATE TABLE dblink.atcommit (dummy integer);
+
+CREATE TRIGGER atcommit AFTER DELETE ON dblink.atcommit
+   FOR EACH STATEMENT EXECUTE PROCEDURE dblink.atcommit();
+
+UPDATE pg_catalog.pg_trigger
+   SET tgdeferrable = true, tginitdeferred = true
+ WHERE tgrelid = 'dblink.atcommit'::regclass
+   AND tgname = 'atcommit';
+
+---- connectors ----
+CREATE FUNCTION dblink.postgres(text[], oid) RETURNS boolean
+AS 'MODULE_PATHNAME', 'dblink_postgres' LANGUAGE C;
+
+CREATE FUNCTION dblink.mysql(text[], oid) RETURNS boolean
+AS 'MODULE_PATHNAME', 'dblink_mysql' LANGUAGE C;
+
+CREATE FUNCTION dblink.oracle(text[], oid) RETURNS boolean
+AS 'MODULE_PATHNAME', 'dblink_oracle' LANGUAGE C;
+
+CREATE FUNCTION dblink.sqlite3(text[], oid) RETURNS boolean
+AS 'MODULE_PATHNAME', 'dblink_sqlite3' LANGUAGE C;

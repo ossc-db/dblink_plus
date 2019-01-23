@@ -11,7 +11,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0.3
+Version:    1.0.4
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
@@ -35,11 +35,11 @@ Note that this package is available for only PostgreSQL 11.
 
 %package llvmjit
 Requires: postgresql11-server, postgresql11-llvmjit
-Requires: dblink_plus = 1.0.3
+Requires: dblink_plus = 1.0.4
 Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus 1.0.3
+Just-in-time compilation support for dblink_plus 1.0.4
 
 ## prework
 %prep
@@ -57,7 +57,7 @@ install -d %{buildroot}%{_libdir}
 install -m 755 dblink_plus.so %{buildroot}%{_libdir}/dblink_plus.so
 install -d %{buildroot}%{_datadir}
 install -m 755 dblink_plus.sql %{buildroot}%{_datadir}/dblink_plus.sql
-install -m 755 dblink_plus--1.0.3.sql %{buildroot}%{_datadir}/dblink_plus--1.0.3.sql
+install -m 755 dblink_plus--1.0.4.sql %{buildroot}%{_datadir}/dblink_plus--1.0.4.sql
 install -m 755 dblink_plus.control %{buildroot}%{_datadir}/dblink_plus.control
 install -m 755 uninstall_dblink_plus.sql %{buildroot}%{_datadir}/uninstall_dblink_plus.sql
 install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
@@ -73,7 +73,7 @@ rm -rf %{buildroot}
 %defattr(755,root,root)
 %{_libdir}/dblink_plus.so
 %{_datadir}/dblink_plus.sql
-%{_datadir}/dblink_plus--1.0.3.sql
+%{_datadir}/dblink_plus--1.0.4.sql
 %{_datadir}/dblink_plus.control
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
@@ -90,5 +90,5 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
-* Thu Jan 10 2019 - NTT OSS Center <tatsuro.yamada@lab.ntt.co.jp> 1.0.3-1
+* Tue Jan 22 2019 - NTT OSS Center <tatsuro.yamada@lab.ntt.co.jp> 1.0.4-1
 Support PG11.

@@ -137,7 +137,7 @@ dblink_postgres(PG_FUNCTION_ARGS)
 			errdetail("%s", detail)));
 	}
 
-	res = PQexec(conn, ALWAYS_SECURE_SEARCH_PATH_SQL);
+	res = PQexec(conn, "SELECT pg_catalog.set_config('search_path', 'pg_catalog, ""$user"", public', false)");
 	code = PQresultStatus(res);
 	if (code != PGRES_COMMAND_OK && code != PGRES_TUPLES_OK)
 	{
