@@ -302,7 +302,7 @@ static void pglink_makevalue(pglink_cursor *cur, PGresult *res)
 	int		i;
 	int		n;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 
 	cur->values = palloc(sizeof(pglink_value) * cur->ntuples);
 	for (i = 0; i < cur->ntuples; i++)
@@ -400,7 +400,7 @@ pglink_cursor_new(void)
 	MemoryContext	old_context;
 	pglink_cursor  *p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = palloc(sizeof(pglink_cursor));
 	p->base.fetch = (dblink_fetch_t) pglink_fetch;
 	p->base.close = (dblink_close_t) pglink_close;
@@ -442,7 +442,7 @@ pglink_srvcur_new(void)
 	MemoryContext	old_context;
 	pglink_srvcur  *p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = palloc(sizeof(pglink_srvcur));
 	p->base.base.fetch = (dblink_fetch_t) pglink_fetch_srvcur;
 	p->base.base.close = (dblink_close_t) pglink_close_srvcur;

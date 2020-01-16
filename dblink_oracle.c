@@ -885,7 +885,7 @@ static void *oralink_malloc(size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(TopMemoryContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = palloc(size);
 	MemoryContextSwitchTo(old_context);
 	return p;
@@ -896,7 +896,7 @@ static void *oralink_calloc(size_t nmemb, size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(TopMemoryContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = palloc0(nmemb * size);
 	MemoryContextSwitchTo(old_context);
 	return p;
@@ -907,7 +907,7 @@ static void *oralink_realloc(void *ptr, size_t size)
 	MemoryContext old_context;
 	void	*p;
 
-	old_context = MemoryContextSwitchTo(TopMemoryContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = repalloc(ptr, size);
 	MemoryContextSwitchTo(old_context);
 	return p;
