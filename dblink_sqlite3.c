@@ -1,7 +1,7 @@
 /*
  * dblink_sqlite3.c
  *
- * Copyright (c) 2011-2017, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2020, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #ifdef ENABLE_SQLITE3
 
@@ -193,7 +193,7 @@ sq3link_cursor_new(void)
 	MemoryContext	old_context;
 	sq3link_cursor  *p;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	p = palloc(sizeof(sq3link_cursor));
 	p->base.fetch = (dblink_fetch_t) sq3link_fetch;
 	p->base.close = (dblink_close_t) sq3link_close;
@@ -266,7 +266,7 @@ sq3link_callback(void *userdata, int argc, char **argv, char **columns)
 	if (InterruptPending)
 		return SQLITE_ABORT;
 
-	old_context = MemoryContextSwitchTo(CurTransactionContext);
+	old_context = MemoryContextSwitchTo(TopTransactionContext);
 	row = palloc(offsetof(sq3link_row, values) + sizeof(char * ) * argc);
 	row->next = NULL;
 	for (i = 0; i < argc; i++)
