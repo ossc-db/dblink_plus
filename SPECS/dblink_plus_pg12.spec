@@ -34,7 +34,7 @@ It is similar to contrib/dblink except that it can connect to Oracle, MySQL and 
 Note that this package is available for only PostgreSQL 12.
 
 %package llvmjit
-Requires: postgresql11-server, postgresql12-llvmjit
+Requires: postgresql12-server, postgresql12-llvmjit
 Requires: dblink_plus = 1.0.5
 Summary:  Just-in-time compilation support for dblink_plus
 
