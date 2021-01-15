@@ -1,7 +1,7 @@
 # SPEC file for dblink_plus
 # Copyright(C) 2021 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
-%define _pgdir   /usr/pgsql-12
+%define _pgdir   /usr/pgsql-13
 %define _bindir  %{_pgdir}/bin
 %define _libdir  %{_pgdir}/lib
 %define _datadir %{_pgdir}/share/extension
@@ -23,18 +23,18 @@ Vendor:     NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 AutoReqProv: no
 
 ## We use postgresql-devel package
-BuildRequires:  postgresql12-devel
-Requires:  postgresql12-libs
+BuildRequires:  postgresql13-devel
+Requires:  postgresql13-libs
 
 ## Description
 %description
 dblink_plus is a PostgreSQL module which supports connections to other databases.
 It is similar to contrib/dblink except that it can connect to Oracle, MySQL and sqlite3. 
 
-Note that this package is available for only PostgreSQL 12.
+Note that this package is available for only PostgreSQL 13.
 
 %package llvmjit
-Requires: postgresql12-server, postgresql12-llvmjit
+Requires: postgresql13-server, postgresql13-llvmjit
 Requires: dblink_plus = 1.0.6
 Summary:  Just-in-time compilation support for dblink_plus
 
@@ -47,12 +47,12 @@ Just-in-time compilation support for dblink_plus 1.0.6
 
 ## Set variables for build environment
 %build
-USE_PGXS=1 make %{?_smp_mflags} MYSQL=0 SQLITE3=0 ORACLE=0
+USE_PGXS=1 make %{?_smp_mflags} MYSQL=0 SQLITE3=0 ORACLE=1
 
 ## Set variables for install
 %install
 rm -rf %{buildroot}
-USE_PGXS=1 make install MYSQL=0 SQLITE3=0 ORACLE=0 DESTDIR=%{buildroot}
+USE_PGXS=1 make install MYSQL=0 SQLITE3=0 ORACLE=1 DESTDIR=%{buildroot}
 install -m 644 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
 
 %clean

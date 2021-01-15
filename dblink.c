@@ -1,7 +1,7 @@
 /*
  * dblink.c
  *
- * Copyright (c) 2011-2017, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2021, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #include "postgres.h"
 
@@ -331,23 +331,33 @@ generic_fetch(FetchType fetch_type, PG_FUNCTION_ARGS)
 	else
 	{
 		ListCell   *cell;
+#if PG_VERSION_NUM < 130000
 		ListCell   *prev;
+#endif
 
 		context->cursor->close(context->cursor);
 
 		/* forget cursor */
+#if PG_VERSION_NUM < 130000
 		prev = NULL;
+#endif
 		foreach(cell, cursors)
 		{
 			Cursor *cur = (Cursor *) lfirst(cell);
 
 			if (cur->cursor == context->cursor)
 			{
+#if PG_VERSION_NUM < 130000
 				cursors = list_delete_cell(cursors, cell, prev);
+#else
+				cursors = foreach_delete_current(cursors, cell);
+#endif
 				break;
 			}
 
+#if PG_VERSION_NUM < 130000
 			prev = cell;
+#endif
 		}
 
 		SRF_RETURN_DONE(fctx);
@@ -426,10 +436,12 @@ dblink_close(PG_FUNCTION_ARGS)
 {
 	int32		id = PG_GETARG_INT32(0);
 	ListCell   *cell;
-	ListCell   *prev;
 
+#if PG_VERSION_NUM < 130000
+	ListCell   *prev;
 	/* forget cursor */
 	prev = NULL;
+#endif
 	foreach(cell, cursors)
 	{
 		Cursor *cur = (Cursor *) lfirst(cell);
@@ -437,11 +449,16 @@ dblink_close(PG_FUNCTION_ARGS)
 		if (cur->id == id)
 		{
 			cur->cursor->close(cur->cursor);
+#if PG_VERSION_NUM < 130000
 			cursors = list_delete_cell(cursors, cell, prev);
+#else
+			cursors = foreach_delete_current(cursors, cell);
+#endif
 			PG_RETURN_BOOL(true);
 		}
-
+#if PG_VERSION_NUM < 130000
 		prev = cell;
+#endif
 	}
 
 	PG_RETURN_BOOL(false);
