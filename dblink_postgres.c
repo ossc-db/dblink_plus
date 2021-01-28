@@ -1,7 +1,7 @@
 /*
  * dblink_postgres.c
  *
- * Copyright (c) 2011-2020, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2011-2021, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
  */
 #include "postgres.h"
 
@@ -11,7 +11,12 @@
 #include "nodes/parsenodes.h"
 #include "libpq-fe.h"
 #include "utils/memutils.h"
+
+#if PG_VERSION_NUM < 130000
 #include "fe_utils/connect.h"
+#else
+#include "common/connect.h"
+#endif
 
 extern Datum postgresql_fdw_validator(PG_FUNCTION_ARGS);
 

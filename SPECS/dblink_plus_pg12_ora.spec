@@ -1,5 +1,5 @@
 # SPEC file for dblink_plus
-# Copyright(C) 2019 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+# Copyright(C) 2021 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
 %define _pgdir   /usr/pgsql-12
 %define _bindir  %{_pgdir}/bin
@@ -11,7 +11,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0.5
+Version:    1.0.6
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
@@ -35,11 +35,11 @@ Note that this package is available for only PostgreSQL 12.
 
 %package llvmjit
 Requires: postgresql12-server, postgresql12-llvmjit
-Requires: dblink_plus = 1.0.5
+Requires: dblink_plus = 1.0.6
 Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus 1.0.5
+Just-in-time compilation support for dblink_plus 1.0.6
 
 ## prework
 %prep
@@ -52,29 +52,18 @@ USE_PGXS=1 make %{?_smp_mflags} MYSQL=0 SQLITE3=0 ORACLE=1
 ## Set variables for install
 %install
 rm -rf %{buildroot}
-
-install -d %{buildroot}%{_libdir}
-install -m 755 dblink_plus.so %{buildroot}%{_libdir}/dblink_plus.so
-install -d %{buildroot}%{_datadir}
-install -m 755 dblink_plus.sql %{buildroot}%{_datadir}/dblink_plus.sql
-install -m 755 dblink_plus--1.0.5.sql %{buildroot}%{_datadir}/dblink_plus--1.0.5.sql
-install -m 755 dblink_plus.control %{buildroot}%{_datadir}/dblink_plus.control
-install -m 755 uninstall_dblink_plus.sql %{buildroot}%{_datadir}/uninstall_dblink_plus.sql
-install -m 755 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
-install -d %{buildroot}%{_bcdir}
-install -m 644 dblink.bc %{buildroot}%{_bcdir}/dblink.bc
-install -m 644 dblink_postgres.bc %{buildroot}%{_bcdir}/dblink_postgres.bc
-install -m 644 dblink_oracle.bc %{buildroot}%{_bcdir}/dblink_oracle.bc
-install -m 644 dblink_plus.index.bc %{buildroot}%{_bc_ind_dir}/dblink_plus.index.bc
+USE_PGXS=1 make install MYSQL=0 SQLITE3=0 ORACLE=1 DESTDIR=%{buildroot}
+install -m 644 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
 
 %clean
 rm -rf %{buildroot}
 
 %files
-%defattr(755,root,root)
+%defattr(0755,root,root)
 %{_libdir}/dblink_plus.so
+%defattr(0644,root,root)
 %{_datadir}/dblink_plus.sql
-%{_datadir}/dblink_plus--1.0.5.sql
+%{_datadir}/dblink_plus--1.0.6.sql
 %{_datadir}/dblink_plus.control
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
@@ -87,6 +76,8 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
+* Thu Jan 07 2021 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.6-1
+Support PG13 and fix how to install bitcode.
 * Mon Nov 25 2019 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.5-1
 Support PG12.
 * Tue Jan 22 2019 - NTT OSS Center <tatsuro.yamada@lab.ntt.co.jp> 1.0.4-1
