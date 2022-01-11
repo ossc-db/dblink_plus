@@ -1,10 +1,10 @@
 #
 # dblink_plus: Makefile
 #
-#    Copyright (c) 2011-2021, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+#    Copyright (c) 2011-2022, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 #
 MODULE_big = dblink_plus
-DATA_built = dblink_plus.sql dblink_plus--1.0.6.sql
+DATA_built = dblink_plus.sql dblink_plus--7.sql
 DATA = uninstall_dblink_plus.sql
 OBJS = dblink.o dblink_postgres.o
 
@@ -51,8 +51,8 @@ SHLIB_LINK += -L$(ORACLE_HOME)/lib -lclntsh
 endif
 endif
 
-dblink_plus--1.0.6.sql:
-	head -n -2 dblink_plus.sql.in | tail -n +4 > dblink_plus--1.0.6.sql
+dblink_plus--1.0.7.sql:
+	head -n -2 dblink_plus.sql.in | tail -n +4 > dblink_plus--1.0.7.sql
 
 standbycheck: all
 	$(pg_regress_installcheck) --schedule=standby_schedule --use-existing --dbname=contrib_regression --port=$(PGPORT)
