@@ -1,7 +1,7 @@
 # SPEC file for dblink_plus
-# Copyright(C) 2022 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+# Copyright(C) 2023 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
-%define _pgdir   /usr/pgsql-12
+%define _pgdir   /usr/pgsql-15
 %define _bindir  %{_pgdir}/bin
 %define _libdir  %{_pgdir}/lib
 %define _datadir %{_pgdir}/share/extension
@@ -11,7 +11,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0.7
+Version:    1.0.8
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
@@ -23,23 +23,23 @@ Vendor:     NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 AutoReqProv: no
 
 ## We use postgresql-devel package
-BuildRequires:  postgresql12-devel
-Requires:  postgresql12-libs
+BuildRequires:  postgresql15-devel
+Requires:  postgresql15-libs
 
 ## Description
 %description
 dblink_plus is a PostgreSQL module which supports connections to other databases.
 It is similar to contrib/dblink except that it can connect to Oracle, MySQL and sqlite3. 
 
-Note that this package is available for only PostgreSQL 12.
+Note that this package is available for only PostgreSQL 15.
 
 %package llvmjit
-Requires: postgresql12-server, postgresql12-llvmjit
-Requires: dblink_plus = 1.0.7
+Requires: postgresql15-server, postgresql15-llvmjit
+Requires: dblink_plus = 1.0.8
 Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus 1.0.7
+Just-in-time compilation support for dblink_plus 1.0.8
 
 ## prework
 %prep
@@ -63,7 +63,7 @@ rm -rf %{buildroot}
 %{_libdir}/dblink_plus.so
 %defattr(0644,root,root)
 %{_datadir}/dblink_plus.sql
-%{_datadir}/dblink_plus--1.0.7.sql
+%{_datadir}/dblink_plus--1.0.8.sql
 %{_datadir}/dblink_plus.control
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
@@ -76,6 +76,8 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
+* Thu Jan 12 2023 - NTT OSS Center <mitsuru.hinata.ck@hco.ntt.co.jp> 1.0.8-1
+Support PG15.
 * Thu Jan 12 2022 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.7-1
 Support PG14.
 * Thu Jan 07 2021 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.6-1
