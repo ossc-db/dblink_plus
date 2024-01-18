@@ -1,5 +1,5 @@
 # SPEC file for dblink_plus
-# Copyright(C) 2023 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+# Copyright(C) 2024 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
 %define _pgdir   /usr/pgsql-15
 %define _bindir  %{_pgdir}/bin
@@ -11,7 +11,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0.8
+Version:    1.0.9
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
@@ -35,11 +35,11 @@ Note that this package is available for only PostgreSQL 15.
 
 %package llvmjit
 Requires: postgresql15-server, postgresql15-llvmjit
-Requires: dblink_plus = 1.0.8
+Requires: dblink_plus = 1.0.9
 Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus 1.0.8
+Just-in-time compilation support for dblink_plus 1.0.9
 
 ## prework
 %prep
@@ -63,7 +63,7 @@ rm -rf %{buildroot}
 %{_libdir}/dblink_plus.so
 %defattr(0644,root,root)
 %{_datadir}/dblink_plus.sql
-%{_datadir}/dblink_plus--1.0.8.sql
+%{_datadir}/dblink_plus--1.0.9.sql
 %{_datadir}/dblink_plus.control
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
@@ -76,9 +76,11 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
+* Thu Jan 18 2023 - NTT OSS Center <mitsuru.hinata@ntt.com> 1.0.9-1
+Support PG16.
 * Thu Jan 12 2023 - NTT OSS Center <mitsuru.hinata.ck@hco.ntt.co.jp> 1.0.8-1
 Support PG15.
-* Thu Jan 12 2022 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.7-1
+* Wed Jan 12 2022 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.7-1
 Support PG14.
 * Thu Jan 07 2021 - NTT OSS Center <keisuke.kuroda.3862@gmail.com> 1.0.6-1
 Support PG13 and fix how to install bitcode.
