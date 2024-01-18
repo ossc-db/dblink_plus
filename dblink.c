@@ -722,7 +722,11 @@ getServerByName(const char *name)
 	server = GetForeignServerByName(name, false);
 
 	/* Check permissions, user must have usage on the server. */
+#if PG_VERSION_NUM >= 160000
+	aclresult = object_aclcheck(ForeignServerRelationId, server->serverid, GetUserId(), ACL_USAGE);
+#else
 	aclresult = pg_foreign_server_aclcheck(server->serverid, GetUserId(), ACL_USAGE);
+#endif
 	if (aclresult != ACLCHECK_OK)
 
 #if PG_VERSION_NUM < 110000
