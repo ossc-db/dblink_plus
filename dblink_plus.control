@@ -1,5 +1,5 @@
 # intarray extension
 comment = 'Connect to external database server, and then run the SQL'
-default_version = '1.0.8'
+default_version = '1.0.9'
 module_pathname = '$libdir/dblink_plus'
 relocatable = true
