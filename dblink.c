@@ -543,9 +543,6 @@ dblink_connections(PG_FUNCTION_ARGS)
 		}
 	}
 
-	/* clean up and return the tuplestore */
-	tuplestore_donestoring(tupstore);
-
 	MemoryContextSwitchTo(oldcontext);
 
 	return (Datum) 0;
