@@ -1,5 +1,5 @@
 # SPEC file for dblink_plus
-# Copyright(C) 2024 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+# Copyright(C) 2025 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
 %define _pgdir   /usr/pgsql-14
 %define _bindir  %{_pgdir}/bin
@@ -11,7 +11,7 @@
 ## Set general information
 Summary:    PostgreSQL module to connect PostgreSQL/Oracle
 Name:       dblink_plus
-Version:    1.0.9
+Version:    1.0.10
 Release:    1%{?dist}
 License:    BSD
 Group:      Applications/Databases
@@ -35,11 +35,11 @@ Note that this package is available for only PostgreSQL 14.
 
 %package llvmjit
 Requires: postgresql14-server, postgresql14-llvmjit
-Requires: dblink_plus = 1.0.9
+Requires: dblink_plus = 1.0.10
 Summary:  Just-in-time compilation support for dblink_plus
 
 %description llvmjit
-Just-in-time compilation support for dblink_plus 1.0.9
+Just-in-time compilation support for dblink_plus 1.0.10
 
 ## prework
 %prep
@@ -47,12 +47,12 @@ Just-in-time compilation support for dblink_plus 1.0.9
 
 ## Set variables for build environment
 %build
-USE_PGXS=1 make %{?_smp_mflags} MYSQL=0 SQLITE3=0 ORACLE=0
+USE_PGXS=1 make %{?_smp_mflags} MYSQL=0 SQLITE3=0 ORACLE=1
 
 ## Set variables for install
 %install
 rm -rf %{buildroot}
-USE_PGXS=1 make install MYSQL=0 SQLITE3=0 ORACLE=0 DESTDIR=%{buildroot}
+USE_PGXS=1 make install MYSQL=0 SQLITE3=0 ORACLE=1 DESTDIR=%{buildroot}
 install -m 644 COPYRIGHT %{buildroot}%{_datadir}/COPYRIGHT_dblink_plus
 
 %clean
@@ -63,7 +63,7 @@ rm -rf %{buildroot}
 %{_libdir}/dblink_plus.so
 %defattr(0644,root,root)
 %{_datadir}/dblink_plus.sql
-%{_datadir}/dblink_plus--1.0.9.sql
+%{_datadir}/dblink_plus--1.0.10.sql
 %{_datadir}/dblink_plus.control
 %{_datadir}/uninstall_dblink_plus.sql
 %{_datadir}/COPYRIGHT_dblink_plus
@@ -76,7 +76,9 @@ rm -rf %{buildroot}
 
 # History.
 %changelog
-* Thu Jan 18 2023 - NTT OSS Center <mitsuru.hinata@ntt.com> 1.0.9-1
+* Fri Jan 17 2025 - NTT OSS Center <mitsuru.hinata@ntt.com> 1.0.10-1
+Support PG17.
+* Thu Jan 18 2024 - NTT OSS Center <mitsuru.hinata@ntt.com> 1.0.9-1
 Support PG16.
 * Thu Jan 12 2023 - NTT OSS Center <mitsuru.hinata.ck@hco.ntt.co.jp> 1.0.8-1
 Support PG15.
