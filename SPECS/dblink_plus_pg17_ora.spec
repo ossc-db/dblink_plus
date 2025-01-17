@@ -1,7 +1,7 @@
 # SPEC file for dblink_plus
 # Copyright(C) 2025 NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 
-%define _pgdir   /usr/pgsql-14
+%define _pgdir   /usr/pgsql-17
 %define _bindir  %{_pgdir}/bin
 %define _libdir  %{_pgdir}/lib
 %define _datadir %{_pgdir}/share/extension
@@ -23,18 +23,18 @@ Vendor:     NIPPON TELEGRAPH AND TELEPHONE CORPORATION
 AutoReqProv: no
 
 ## We use postgresql-devel package
-BuildRequires:  postgresql14-devel
-Requires:  postgresql14-libs
+BuildRequires:  postgresql17-devel
+Requires:  postgresql17-libs
 
 ## Description
 %description
 dblink_plus is a PostgreSQL module which supports connections to other databases.
 It is similar to contrib/dblink except that it can connect to Oracle, MySQL and sqlite3. 
 
-Note that this package is available for only PostgreSQL 14.
+Note that this package is available for only PostgreSQL 17.
 
 %package llvmjit
-Requires: postgresql14-server, postgresql14-llvmjit
+Requires: postgresql17-server, postgresql17-llvmjit
 Requires: dblink_plus = 1.0.10
 Summary:  Just-in-time compilation support for dblink_plus
 
