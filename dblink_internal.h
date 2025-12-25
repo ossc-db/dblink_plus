@@ -1,7 +1,7 @@
 /*
  * dblink_internal.h
  *
- * Copyright (c) 2025, NIPPON TELEGRAPH AND TELEPHONE CORPORATION
+ * Copyright (c) 2025, NTT, Inc.
  */
 #ifndef DBLINK_INTERNAL_H
 #define DBLINK_INTERNAL_H
